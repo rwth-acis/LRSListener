@@ -1,0 +1,3 @@
+rootProject.name = 'LRSListener'
+include('LRSListener')
+include('ListenerConfigurator')
