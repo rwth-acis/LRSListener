@@ -15,27 +15,47 @@ public class GameModel{
 	@ApiModelProperty( value = "Game ID", required = true ) 
 	private String gameId;
 	@ApiModelProperty( value = "Game description", required = true ) 
-	private String gameDesc;
+	private String description;
 	@ApiModelProperty( value = "Community type of game", required = true ) 
 	private String communityType;
-	
-	
+	/**
+	 * @return the gameId
+	 */
 	public String getGameId() {
 		return gameId;
 	}
+	/**
+	 * @param gameId the gameId to set
+	 */
 	public void setGameId(String gameId) {
 		this.gameId = gameId;
 	}
-	public String getGameDesc() {
-		return gameDesc;
+	
+	/**
+	 * @return the description
+	 */
+	public String getDescription() {
+		return description;
 	}
-	public void setGameDesc(String gameDesc) {
-		this.gameDesc = gameDesc;
+	/**
+	 * @param description the description to set
+	 */
+	public void setDescription(String description) {
+		this.description = description;
 	}
+	/**
+	 * @return the communityType
+	 */
 	public String getCommunityType() {
 		return communityType;
 	}
+	/**
+	 * @param communityType the communityType to set
+	 */
 	public void setCommunityType(String communityType) {
 		this.communityType = communityType;
 	}
+	
+	
+
 }

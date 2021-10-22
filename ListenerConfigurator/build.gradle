@@ -99,16 +99,6 @@ task copyJar(type: Copy) {
     into "$projectDir/service"
 }
 
-task copyJarToGame(type: Copy) {
-    from jar // here it automatically reads jar file produced from jar task
-    into "$rootDir/GamificationGameService/service"
-}
-
-task copyJarToVis(type: Copy) {
-    from jar // here it automatically reads jar file produced from jar task
-    into "$rootDir/GamificationVisualizationService/lib"
-}
-
 task copyToLib(type: Copy) {
     from configurations.compileClasspath
     into "$projectDir/lib"
@@ -116,8 +106,7 @@ task copyToLib(type: Copy) {
 
 build.dependsOn copyJar
 build.dependsOn copyToLib
-build.dependsOn copyJarToGame
-build.dependsOn copyJarToVis
+
 
 task startscripts {
     new File("$projectDir/etc/bin", "start_network.sh").text = """#!/bin/bash

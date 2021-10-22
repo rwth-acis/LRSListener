@@ -56,230 +56,159 @@ public class QuestModel{
 	@ApiModelProperty( value = "Use notification status", required = true ) 
 	private boolean useNotification;
 	@ApiModelProperty( value = "Notification Message") 
-	private String notifMessage;
-
+	private String notificationMessage;
 	/**
-	 * Getter for quest flag
-	 * 
-	 * @return quest flag
+	 * @return the questId
 	 */
-	public boolean getQuestFlag(){
-		return this.questFlag;
+	public String getQuestId() {
+		return questId;
 	}
-	
 	/**
-	 * Setter for quest flag
-	 * 
-	 * @param quest_flag quest flag
+	 * @param questId the questId to set
 	 */
-	public void setQuestFlag(boolean quest_flag){
-		this.questFlag = quest_flag;
+	public void setQuestId(String questId) {
+		this.questId = questId;
 	}
-
-	
 	/**
-	 * Getter for completed quest ID
-	 * 
-	 * @return completed quest ID
+	 * @return the name
 	 */
-	public String getQuestIdCompleted(){
-		return this.questIdCompleted;
+	public String getName() {
+		return name;
 	}
-	
 	/**
-	 * Setter for completed quest ID
-	 * 
-	 * @param quest_id_completed completed quest ID
+	 * @param name the name to set
 	 */
-	public void setQuestIdCompleted(String quest_id_completed){
-		this.questIdCompleted =  quest_id_completed;
+	public void setName(String name) {
+		this.name = name;
 	}
-	
 	/**
-	 * Getter for point flag
-	 * 
-	 * @return point flag
+	 * @return the description
 	 */
-	public boolean getPointFlag(){
-		return this.pointFlag;
+	public String getDescription() {
+		return description;
 	}
-	
 	/**
-	 * Setter for point flag
-	 * 
-	 * @param point_flag point flag
+	 * @param description the description to set
 	 */
-	public void setPointFlag(boolean point_flag){
-		this.pointFlag = point_flag;
+	public void setDescription(String description) {
+		this.description = description;
 	}
-	
 	/**
-	 * Getter for point value
-	 * 
-	 * @return point value
+	 * @return the status
 	 */
-	public int getPointValue(){
-		return this.pointValue;
+	public QuestStatus getStatus() {
+		return status;
 	}
-	
 	/**
-	 * Setter for point value
-	 * 
-	 * @param point_value point value
+	 * @param status the status to set
 	 */
-	public void setPointValue(int point_value){
-		this.pointValue =  point_value;
+	public void setStatus(QuestStatus status) {
+		this.status = status;
 	}
-	
 	/**
-	 * Getter for action ids used by quest
-	 * 
-	 * @return action ids
+	 * @return the achievementId
 	 */
-	public List<Pair<String, Integer>> getActionIds(){
-		return this.actionIds;
+	public String getAchievementId() {
+		return achievementId;
 	}
-	
 	/**
-	 * Setter for action ids used by quest
-	 * 
-	 * @param action_ids list of action id with times
-	 * @throws IOException io exception
+	 * @param achievementId the achievementId to set
 	 */
-	public void setActionIds(List<Pair<String, Integer>> action_ids) throws IOException{
+	public void setAchievementId(String achievementId) {
+		this.achievementId = achievementId;
+	}
+	/**
+	 * @return the questFlag
+	 */
+	public boolean isQuestFlag() {
+		return questFlag;
+	}
+	/**
+	 * @param questFlag the questFlag to set
+	 */
+	public void setQuestFlag(boolean questFlag) {
+		this.questFlag = questFlag;
+	}
+	/**
+	 * @return the questIdCompleted
+	 */
+	public String getQuestIdCompleted() {
+		return questIdCompleted;
+	}
+	/**
+	 * @param questIdCompleted the questIdCompleted to set
+	 */
+	public void setQuestIdCompleted(String questIdCompleted) {
+		this.questIdCompleted = questIdCompleted;
+	}
+	/**
+	 * @return the pointFlag
+	 */
+	public boolean isPointFlag() {
+		return pointFlag;
+	}
+	/**
+	 * @param pointFlag the pointFlag to set
+	 */
+	public void setPointFlag(boolean pointFlag) {
+		this.pointFlag = pointFlag;
+	}
+	/**
+	 * @return the pointValue
+	 */
+	public int getPointValue() {
+		return pointValue;
+	}
+	/**
+	 * @param pointValue the pointValue to set
+	 */
+	public void setPointValue(int pointValue) {
+		this.pointValue = pointValue;
+	}
+	/**
+	 * @return the actionIds
+	 */
+	public List<Pair<String, Integer>> getActionIds() {
+		return actionIds;
+	}
+	/**
+	 * @param actionIds the actionIds to set
+	 * @throws IOException IOExeption
+	 */
+	public void setActionIds(List<Pair<String, Integer>> actionIds) throws IOException {
 		this.actionIds = new ArrayList<Pair<String,Integer>>();
 		
-		if(action_ids.isEmpty()){
+		if(actionIds.isEmpty()){
 			throw new IOException("List cannot be empty.");
 		}
-		for(Pair<String,Integer> p: action_ids){
+		for(Pair<String,Integer> p: actionIds){
 			this.actionIds.add(Pair.of(p.getLeft(), p.getRight()));
 		}
 	}
-	
 	/**
-	 * Getter for variable quest id
-	 * 
-	 * @return id of a quest
+	 * @return the useNotification
 	 */
-	public String getId(){
-		return this.questId;
+	public boolean isUseNotification() {
+		return useNotification;
 	}
-	
 	/**
-	 * Setter for variable quest id
-	 * 
-	 * @param quest_id id of a quest
+	 * @param useNotification the useNotification to set
 	 */
-	public void setId(String quest_id){
-		this.questId = quest_id;
+	public void setUseNotification(boolean useNotification) {
+		this.useNotification = useNotification;
 	}
-	
 	/**
-	 * Getter for variable name
-	 * 
-	 * @return name of a quest
+	 * @return the notificationMessage
 	 */
-	public String getName(){
-		return this.name;
+	public String getNotificationMessage() {
+		return notificationMessage;
 	}
-	
 	/**
-	 * Setter for variable name
-	 * 
-	 * @param name name of a quest
+	 * @param notificationMessage the notificationMessage to set
 	 */
-	public void setName(String name){
-		this.name = name;
+	public void setNotificationMessage(String notificationMessage) {
+		this.notificationMessage = notificationMessage;
 	}
+
 	
-	/**
-	 * Getter for description
-	 * 
-	 * @return description of a quest
-	 */
-	public String getDescription(){
-		return this.description;
-	}
-	
-	/**
-	 * Setter for description
-	 * 
-	 * @param description description of a quest
-	 */
-	public void setDescription(String description){
-		this.description = description;
-	}
-	
-	/**
-	 * Getter for quest status
-	 * 
-	 * @return quest status
-	 */
-	public QuestStatus getStatus(){
-		return this.status;
-	}
-	
-	/**
-	 * Setter for quest status
-	 * 
-	 * @param status quest status
-	 */
-	public void setStatus(QuestStatus status){
-		this.status = status;
-	}
-	
-	/**
-	 * Getter for achievement id
-	 * 
-	 * @return id of achievement
-	 */
-	public String getAchievementId(){
-		return this.achievementId;
-	}
-	
-	/**
-	 * Setter for variable id
-	 * 
-	 * @param achievement_id id of achievement
-	 */
-	public void setAchievementId(String achievement_id){
-		this.achievementId = achievement_id;
-	}
-	
-	/**
-	 * Getter for use notification status
-	 * 
-	 * @return use notification status
-	 */
-	public boolean isUseNotification(){
-		return this.useNotification;
-	}
-	
-	/**
-	 * Setter for use notification status
-	 * 
-	 * @param use_notification use notification status
-	 */
-	public void useNotification(boolean use_notification){
-		this.useNotification = use_notification;
-	}
-	
-	/**
-	 * Getter for notification message
-	 * 
-	 * @return notification message
-	 */
-	public String getNotificationMessage(){
-		return this.notifMessage;
-	}
-	
-	/**
-	 * Setter for notification message
-	 * 
-	 * @param notif_message notification message of a badge
-	 */
-	public void setNotificationMessage(String notif_message){
-		this.notifMessage = notif_message;
-	}
 }

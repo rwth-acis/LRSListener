@@ -26,114 +26,78 @@ public class ActionModel{
 	@ApiModelProperty( value = "Use notification status", required = true ) 
 	private boolean useNotification;
 	@ApiModelProperty( value = "Notification Message") 
-	private String notifMessage;
+	private String notificationMessage;
 	
 	/**
-	 * Getter for variable id
-	 * 
-	 * @return id of an action
+	 * @return the actionId
 	 */
-	public String getId(){
+	public String getActionId() {
 		return actionId;
 	}
-	
 	/**
-	 * Setter for variable id
-	 * 
-	 * @param action_id id of an action
+	 * @param actionId the actionId to set
 	 */
-	public void setId(String action_id){
-		this.actionId = action_id;
+	public void setActionId(String actionId) {
+		this.actionId = actionId;
 	}
-	
 	/**
-	 * Getter for variable name
-	 * 
-	 * @return name of an achievement
+	 * @return the name
 	 */
-	public String getName(){
+	public String getName() {
 		return name;
 	}
-	
 	/**
-	 * Setter for variable name
-	 * 
-	 * @param name name of an achievement
+	 * @param name the name to set
 	 */
-	public void setName(String name){
+	public void setName(String name) {
 		this.name = name;
 	}
-	
 	/**
-	 * Getter for description
-	 * 
-	 * @return description of an achievement
+	 * @return the description
 	 */
-	public String getDescription(){
-		return this.description;
+	public String getDescription() {
+		return description;
 	}
-	
 	/**
-	 * Setter for description
-	 * 
-	 * @param description description of an achievement
+	 * @param description the description to set
 	 */
-	public void setDescription(String description){
+	public void setDescription(String description) {
 		this.description = description;
 	}
-	
 	/**
-	 * Getter for point value
-	 * 
-	 * @return point value of an achievement
+	 * @return the pointValue
 	 */
-	public int getPointValue(){
-		return this.pointValue;
+	public int getPointValue() {
+		return pointValue;
 	}
-	
 	/**
-	 * Setter for point value
-	 * 
-	 * @param point_value point value of an achievement
+	 * @param pointValue the pointValue to set
 	 */
-	public void setPointValue(int point_value){
-		this.pointValue = point_value;
+	public void setPointValue(int pointValue) {
+		this.pointValue = pointValue;
 	}
-	
 	/**
-	 * Getter for use notification status
-	 * 
-	 * @return use notification status
+	 * @return the useNotification
 	 */
-	public boolean isUseNotification(){
-		return this.useNotification;
+	public boolean isUseNotification() {
+		return useNotification;
 	}
-	
 	/**
-	 * Setter for use notification status
-	 * 
-	 * @param use_notification use notification status
+	 * @param useNotification the useNotification to set
 	 */
-	public void useNotification(boolean use_notification){
-		this.useNotification = use_notification;
+	public void setUseNotification(boolean useNotification) {
+		this.useNotification = useNotification;
 	}
-	
 	/**
-	 * Getter for notification message
-	 * 
-	 * @return notification message
+	 * @return the notificationMessage
 	 */
-	public String getNotificationMessage(){
-		return this.notifMessage;
+	public String getNotificationMessage() {
+		return notificationMessage;
 	}
-	
 	/**
-	 * Setter for notification message
-	 * 
-	 * @param notif_message notification message of a badge
+	 * @param notificationMessage the notificationMessage to set
 	 */
-	public void setNotificationMessage(String notif_message){
-		this.notifMessage = notif_message;
+	public void setNotificationMessage(String notificationMessage) {
+		this.notificationMessage = notificationMessage;
 	}
-	
 }

@@ -201,12 +201,12 @@ ALTER TABLE listen.action_info OWNER TO configurator;
 CREATE TABLE listen.level_info
 (
   config_id character varying(20) NOT NULL,
-  level_id character varying(20) NOT NULL,
+  level_num character varying(20) NOT NULL,
   listen_to character varying(100),
-  CONSTRAINT config_level_pkey PRIMARY KEY (config_id, level_id),
+  CONSTRAINT config_level_pkey PRIMARY KEY (config_id, level_num),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT level_id FOREIGN KEY (level_id)
+  CONSTRAINT level_num FOREIGN KEY (level_num)
     REFERENCES model.level_data (level_id) ON UPDATE CASCADE ON DELETE CASCADE
 )
 WITH (

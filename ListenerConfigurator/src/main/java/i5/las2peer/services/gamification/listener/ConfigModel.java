@@ -18,35 +18,42 @@ public class ConfigModel {
 	private String name;
 	@ApiModelProperty(value = "Config description")
 	private String description;
-
-	public ConfigModel(String configId, String name, String desc) {
-		this.configId = configId;
-		this.name = name;
-		this.description = desc;
-	}
-
+	/**
+	 * @return the configId
+	 */
 	public String getConfigId() {
 		return configId;
 	}
-
+	/**
+	 * @param configId the configId to set
+	 */
 	public void setConfigId(String configId) {
 		this.configId = configId;
 	}
-
+	/**
+	 * @return the name
+	 */
 	public String getName() {
 		return name;
 	}
-
+	/**
+	 * @param name the name to set
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
-
+	/**
+	 * @return the description
+	 */
 	public String getDescription() {
 		return description;
 	}
-
+	/**
+	 * @param description the description to set
+	 */
 	public void setDescription(String description) {
 		this.description = description;
 	}
+
 
 }

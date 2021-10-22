@@ -8,10 +8,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import javax.ws.rs.Consumes;
@@ -82,13 +80,13 @@ public class ListenerConfigurator extends RESTService {
 	private String jdbcPass;
 	private DatabaseManager dbm;
 	private ConfigDAO configAccess;
-	private List<URL> observers;
+	private Map<String,URL> observers;
 
 	public ListenerConfigurator() {
 		setFieldValues();
 		dbm = new DatabaseManager(jdbcDriverClassName, jdbcLogin, jdbcPass, jdbcUrl, jdbcSchema);
 		this.configAccess = new ConfigDAO();
-		this.observers = new ArrayList<>();
+		this.observers = new HashMap<String,URL>();
 	}
 
 	/**
@@ -108,7 +106,7 @@ public class ListenerConfigurator extends RESTService {
 	 * Create a new configuration.
 	 * 
 	 * @param configId    Config ID obtained from LMS
-	 * @param jsonObject  Data in JSON
+	 * @param configModel  Config in JSON
 	 * @param contentType Content type (implicitly sent in header)
 	 * @return HTTP Response returned as JSON object
 	 */
@@ -127,7 +125,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response createNewConfig(
 			@ApiParam(value = "Config ID to store a new config", required = true) @PathParam("configId") String configId,
 			@ApiParam(value = "Content-type in header", required = true) @HeaderParam(value = HttpHeaders.CONTENT_TYPE) String contentType,
-			@ApiParam(value = "Configuration detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Configuration detail in JSON", required = true) ConfigModel configModel) {
 
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
 				"POST " + "gamification/configurator/" + configId, true);
@@ -154,9 +152,6 @@ public class ListenerConfigurator extends RESTService {
 				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 						.build();
 			}
-			String configname = jsonObject.get("name").toString();
-			String configdesc = jsonObject.get("decsription").toString();
-			ConfigModel configModel = new ConfigModel(configId, configname, configdesc);
 
 			try {
 				configAccess.createConfig(conn, configModel);
@@ -300,11 +295,12 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId    Config ID obtained from LMS
 	 * @param contentType Content type (implicitly sent in header)
-	 * @param jsonObject object
+	 * @param configModel Config Model in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
 	@Path("/{configId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Config Updated"),
 			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "Error occured"),
@@ -314,7 +310,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateConfiguration(
 			@ApiParam(value = "Config ID to update a configuration", required = true) @PathParam("configId") String configId,
 			@ApiParam(value = "Configuration data in multiple/form-data type", required = true) @HeaderParam(value = HttpHeaders.CONTENT_TYPE) String contentType,
-			@ApiParam(value = "Configuration detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Configuration detail in JSON", required = true) ConfigModel configModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -349,9 +345,6 @@ public class ListenerConfigurator extends RESTService {
 				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 						.build();
 			}
-			String configname = jsonObject.get("name").toString();
-			String configdesc = jsonObject.get("decsription").toString();
-			ConfigModel configModel = new ConfigModel(configId, configname, configdesc);
 			try {
 				configAccess.updateConfig(conn, configModel);
 				objResponse.put("message", "Configuration updated");
@@ -527,11 +520,12 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a game for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
+	 * @param lsitenTo String the Listener should listen to
 	 * @param gameModel Game in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/game/{configId}")
+	@Path("/game/{configId}/{listenTo}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created game successfully"),
@@ -540,10 +534,11 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerGame", notes = "Create and register a game to a configuration")
 	public Response registerGame(
 			@PathParam("configId") String configId,
+			@PathParam("listenTo") String listenTo,
 			@ApiParam(value = "Game detail in JSON", required = true) GameModel gameModel) {
 
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/configurator/game/" + configId, true);
+				"POST " + "gamification/configurator/game/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
 		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
@@ -564,16 +559,15 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				//TODO parse jsonobject
-				GameModel game = gameModel;
+
 				try {
-					configAccess.createGame(conn,configId,game);
-					configAccess.addElementToMapping(conn, configId, game.getGameId());
-					notifyObservers();
+					configAccess.createGame(conn,gameModel);
+					configAccess.addElementToMapping(conn, configId, gameModel.getGameId(), listenTo, "game");
+					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
 					objResponse.put("message",
-							"Cannot register and create game. Failed to upload " + game.getGameId() + ". " + e.getMessage());
+							"Cannot register and create game. Failed to upload " + gameModel.getGameId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
@@ -657,14 +651,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isGameIdExist(conn, configId, gameId)) {
+				if (!configAccess.isGameIdExist(conn, gameId)) {
 					objResponse.put("message", "Cannot get game. Game not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				GameModel game = configAccess.getGameWithId(conn, configId, gameId);
+				GameModel game = configAccess.getGameWithId(conn, gameId);
 				if(game == null){
 					objResponse.put("message", "Game Null, Cannot find game with " + gameId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -715,7 +709,7 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId Config ID obtained from LMS
 	 * @param gameId   to be worked on
-	 * @param jsonObject Game in JSON
+	 * @param gameModel Game in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
@@ -728,7 +722,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateGame(
 			@PathParam("configId") String configId,
 			@PathParam("gameId") String gameId,
-			@ApiParam(value = "Game detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Game detail in JSON", required = true) GameModel gameModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -764,16 +758,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isGameIdExist(conn, configId, gameId)) {
+				if (!configAccess.isGameIdExist(conn, gameId)) {
 					objResponse.put("message", "Cannot update game. Game not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				// TODO parse jsonObject to game
-				GameModel game = new GameModel();
-				configAccess.updateGame(conn, configId, game);
+				configAccess.updateGame(conn, gameModel);
 				objResponse.put("message", "Game updated");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -854,7 +846,7 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isGameIdExist(conn, configId, gameId)) {
+				if (!configAccess.isGameIdExist(conn, gameId)) {
 					objResponse.put("message", "Cannot delete game. Game not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
@@ -862,9 +854,9 @@ public class ListenerConfigurator extends RESTService {
 							.build();
 				}
 				
-				configAccess.deleteGame(conn, configId, gameId);
-				configAccess.removeElementFromMapping(conn, configId, gameId);
-				notifyObservers();
+				configAccess.deleteGame(conn, gameId);
+				configAccess.removeElementFromMapping(conn, configId, gameId, "game");
+				notifyObservers(configId);
 				objResponse.put("message", "Game deleted");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -899,11 +891,12 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a quest for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param jsonObject Quest in JSON
+	 * @param lsitenTo String the Listener should listen to
+	 * @param questModel Quest in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/quest/{configId}")
+	@Path("/quest/{configId}/{listenTo}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created quest successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -911,11 +904,12 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerQuest", notes = "Create and register a quest to a configuration")
 	public Response registerQuest(
 			@PathParam("configId") String configId,
-			@ApiParam(value = "Quest detail in JSON", required = true) JSONObject jsonObject) {
+			@PathParam("listenTo") String listenTo,
+			@ApiParam(value = "Quest detail in JSON", required = true) QuestModel questModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/configurator/quest/" + configId, true);
+				"POST " + "gamification/configurator/quest/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
 		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
@@ -936,16 +930,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				//TODO parse jsonobject
-				QuestModel quest = new QuestModel();
 				try {
-					configAccess.createQuest(conn, configId ,quest);
-					configAccess.addElementToMapping(conn, configId, quest.getId());
-					notifyObservers();
+					configAccess.createQuest(conn, questModel);
+					configAccess.addElementToMapping(conn, configId, questModel.getQuestId(), listenTo, "quest");
+					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
 					objResponse.put("message",
-							"Cannot register and create quest. Failed to upload " + quest.getId() + ". " + e.getMessage());
+							"Cannot register and create quest. Failed to upload " + questModel.getQuestId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
@@ -1028,14 +1020,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isQuestIdExist(conn, configId, questId)) {
+				if (!configAccess.isQuestIdExist(conn, questId)) {
 					objResponse.put("message", "Cannot get quest. Quest not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				QuestModel quest = configAccess.getQuestWithId(conn, configId, questId);
+				QuestModel quest = configAccess.getQuestWithId(conn, questId);
 				if(quest == null){
 					objResponse.put("message", "Quest Null, Cannot find quest with " + questId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -1086,7 +1078,7 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId Config ID obtained from LMS
 	 * @param questId  to be worked on
-	 * @param jsonObject Quest in JSON
+	 * @param questModel Quest in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
@@ -1099,7 +1091,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateQuest(
 			@PathParam("configId") String configId,
 			@PathParam("questId") String questId,
-			@ApiParam(value = "Quest detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Quest detail in JSON", required = true) QuestModel questModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -1135,16 +1127,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isQuestIdExist(conn, configId, questId)) {
+				if (!configAccess.isQuestIdExist(conn, questId)) {
 					objResponse.put("message", "Cannot update quest. Quest not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				// TODO parse jsonObject to quest
-				QuestModel quest = new QuestModel();
-				configAccess.updateQuest(conn, configId, quest);
+				configAccess.updateQuest(conn, questModel);
 				objResponse.put("message", "Quest updated");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -1225,16 +1215,16 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isQuestIdExist(conn, configId, questId)) {
+				if (!configAccess.isQuestIdExist(conn, questId)) {
 					objResponse.put("message", "Cannot delete quest. Quest not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				configAccess.deleteQuest(conn, configId, questId);
-				configAccess.removeElementFromMapping(conn, configId, questId);
-				notifyObservers();
+				configAccess.deleteQuest(conn, questId);
+				configAccess.removeElementFromMapping(conn, configId, questId, "quest");
+				notifyObservers(configId);
 				objResponse.put("message", "Quest deleted");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -1269,11 +1259,12 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a achievement for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param jsonObject Achievement in JSON
+	 * @param lsitenTo String the Listener should listen to
+	 * @param achievementModel Achievement in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/achievement/{configId}")
+	@Path("/achievement/{configId}/{listenTo}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = {
 			@ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created achievement successfully"),
@@ -1282,11 +1273,12 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerAchievement", notes = "Create and register an achievement to a configuration")
 	public Response registerAchievement(
 			@PathParam("configId") String configId,
-			@ApiParam(value = "Achievement detail in JSON", required = true) JSONObject jsonObject) {
+			@PathParam("listenTo") String listenTo,
+			@ApiParam(value = "Achievement detail in JSON", required = true) AchievementModel achievementModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/configurator/achievement/" + configId, true);
+				"POST " + "gamification/configurator/achievement/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
 		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
@@ -1307,16 +1299,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				//TODO parse jsonobject
-				AchievementModel achievement = new AchievementModel();
 				try {
-					configAccess.createAchhievement(conn, configId ,achievement);
-					configAccess.addElementToMapping(conn, configId, achievement.getId());
-					notifyObservers();
+					configAccess.createAchhievement(conn, achievementModel);
+					configAccess.addElementToMapping(conn, configId, achievementModel.getAchievementId(), listenTo, "achievement");
+					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
 					objResponse.put("message",
-							"Cannot register and create achievement. Failed to upload " + achievement.getId() + ". " + e.getMessage());
+							"Cannot register and create achievement. Failed to upload " + achievementModel.getAchievementId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
@@ -1401,14 +1391,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isAchievementIdExist(conn, configId, achievementId)) {
+				if (!configAccess.isAchievementIdExist(conn, achievementId)) {
 					objResponse.put("message", "Cannot get achievement. Achievement not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				AchievementModel achievement = configAccess.getAchievementWithId(conn, configId, achievementId);
+				AchievementModel achievement = configAccess.getAchievementWithId(conn, achievementId);
 				if(achievement == null){
 					objResponse.put("message", "Achievement Null, Cannot find achievement with " + achievementId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -1459,7 +1449,7 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId      Config ID obtained from LMS
 	 * @param achievementId to be worked on
-	 * @param jsonObject Achievement in JSON
+	 * @param achievementModel Achievement in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
@@ -1473,7 +1463,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateAchievement(
 			@PathParam("configId") String configId,
 			@PathParam("achievementId") String achievementId,
-			@ApiParam(value = "Achievement detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Achievement detail in JSON", required = true) AchievementModel achievementModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -1509,16 +1499,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isAchievementIdExist(conn, configId, achievementId)) {
+				if (!configAccess.isAchievementIdExist(conn, achievementId)) {
 					objResponse.put("message", "Cannot update achievement. Achievement not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				// TODO parse jsonObject to achievement
-				AchievementModel achievement = new AchievementModel();
-				configAccess.updateAchievement(conn, configId, achievement);
+				configAccess.updateAchievement(conn, achievementModel);
 				objResponse.put("message", "Achievement updated");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -1601,16 +1589,16 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isAchievementIdExist(conn, configId, achievementId)) {
+				if (!configAccess.isAchievementIdExist(conn, achievementId)) {
 					objResponse.put("message", "Cannot delete achievement. Achievement not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				configAccess.deleteAchievement(conn, configId, achievementId);
-				configAccess.removeElementFromMapping(conn, configId, achievementId);
-				notifyObservers();
+				configAccess.deleteAchievement(conn, achievementId);
+				configAccess.removeElementFromMapping(conn, configId, achievementId, "achievement");
+				notifyObservers(configId);
 				objResponse.put("message", "Achievement deleted");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -1645,11 +1633,12 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a badge for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param jsonObject Badge in JSON
+	 * @param lsitenTo String the Listener should listen to
+	 * @param badgeModel Badge in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/badge/{configId}")
+	@Path("/badge/{configId}/{listenTo}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created badge successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -1657,11 +1646,12 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerBadge", notes = "Create and register a badge to a configuration")
 	public Response registerBadge(
 			@PathParam("configId") String configId,
-			@ApiParam(value = "Badge detail in JSON", required = true) JSONObject jsonObject) {
+			@PathParam("listenTo") String listenTo,
+			@ApiParam(value = "Badge detail in JSON", required = true) BadgeModel badgeModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/configurator/badge/" + configId, true);
+				"POST " + "gamification/configurator/badge/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
 		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
@@ -1682,16 +1672,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				//TODO parse jsonobject
-				BadgeModel badge = new BadgeModel();
 				try {
-					configAccess.createBadge(conn, configId ,badge);
-					configAccess.addElementToMapping(conn,configId,badge.getId());
-					notifyObservers();
+					configAccess.createBadge(conn, badgeModel);
+					configAccess.addElementToMapping(conn,configId,badgeModel.getBadgeId(), listenTo, "badge");
+					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
 					objResponse.put("message",
-							"Cannot register and create badge. Failed to upload " + badge.getId() + ". " + e.getMessage());
+							"Cannot register and create badge. Failed to upload " + badgeModel.getBadgeId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
@@ -1774,14 +1762,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isBadgeIdExist(conn, configId, badgeId)) {
+				if (!configAccess.isBadgeIdExist(conn, badgeId)) {
 					objResponse.put("message", "Cannot get badge. Badge not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				BadgeModel badge = configAccess.getBadgeWithId(conn, configId, badgeId);
+				BadgeModel badge = configAccess.getBadgeWithId(conn, badgeId);
 				if(badge == null){
 					objResponse.put("message", "Badge Null, Cannot find badge with " + badgeId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -1832,7 +1820,7 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId Config ID obtained from LMS
 	 * @param badgeId  to be worked on
-	 * @param jsonObject Badge in JSON
+	 * @param badgeModel Badge in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
@@ -1845,7 +1833,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateBadge(
 			@PathParam("configId") String configId,
 			@PathParam("badgeId") String badgeId,
-			@ApiParam(value = "Badge detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Badge detail in JSON", required = true) BadgeModel badgeModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -1881,16 +1869,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isBadgeIdExist(conn, configId, badgeId)) {
+				if (!configAccess.isBadgeIdExist(conn, badgeId)) {
 					objResponse.put("message", "Cannot update badge. Badge not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				// TODO parse jsonObject to badge
-				BadgeModel badge = new BadgeModel();
-				configAccess.updateBadge(conn, configId, badge);
+				configAccess.updateBadge(conn, badgeModel);
 				objResponse.put("message", "Badge updated");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -1971,16 +1957,16 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isBadgeIdExist(conn, configId, badgeId)) {
+				if (!configAccess.isBadgeIdExist(conn, badgeId)) {
 					objResponse.put("message", "Cannot delete badge. Badge not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				configAccess.deleteBadge(conn, configId, badgeId);
-				configAccess.removeElementFromMapping(conn, configId, badgeId);
-				notifyObservers();
+				configAccess.deleteBadge(conn, badgeId);
+				configAccess.removeElementFromMapping(conn, configId, badgeId, "badge");
+				notifyObservers(configId);
 				objResponse.put("message", "Badge deleted");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -2015,11 +2001,12 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a action for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param jsonObject Action in JSON
+	 * @param lsitenTo String the Listener should listen to
+	 * @param actionModel Action in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/action/{configId}")
+	@Path("/action/{configId}/{listenTo}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created action successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2027,11 +2014,12 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerAction", notes = "Create and register an action to a configuration")
 	public Response registerAction(
 			@PathParam("configId") String configId,
-			@ApiParam(value = "Action detail in JSON", required = true) JSONObject jsonObject) {
+			@PathParam("listenTo") String listenTo,
+			@ApiParam(value = "Action detail in JSON", required = true) ActionModel actionModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/configurator/action/" + configId, true);
+				"POST " + "gamification/configurator/action/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
 		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
@@ -2052,16 +2040,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				//TODO parse jsonobject
-				ActionModel action = new ActionModel();
 				try {
-					configAccess.createAction(conn, configId ,action);
-					configAccess.addElementToMapping(conn, configId, action.getId());
-					notifyObservers();
+					configAccess.createAction(conn, actionModel);
+					configAccess.addElementToMapping(conn, configId, actionModel.getActionId(), listenTo, "action");
+					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
 					objResponse.put("message",
-							"Cannot register and create action. Failed to upload " + action.getId() + ". " + e.getMessage());
+							"Cannot register and create action. Failed to upload " + actionModel.getActionId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
@@ -2144,14 +2130,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isActionIdExist(conn, configId, actionId)) {
+				if (!configAccess.isActionIdExist(conn, actionId)) {
 					objResponse.put("message", "Cannot get action. Action not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				ActionModel action = configAccess.getActionWithId(conn, configId, actionId);
+				ActionModel action = configAccess.getActionWithId(conn, actionId);
 				if(action == null){
 					objResponse.put("message", "Action Null, Cannot find action with " + actionId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -2202,7 +2188,7 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId Config ID obtained from LMS
 	 * @param actionId to be worked on
-	 * @param jsonObject Action in JSON
+	 * @param actionModel Action in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
@@ -2215,7 +2201,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateAction(
 			@PathParam("configId") String configId,
 			@PathParam("actionId") String actionId,
-			@ApiParam(value = "Action detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Action detail in JSON", required = true) ActionModel actionModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -2251,16 +2237,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isActionIdExist(conn, configId, actionId)) {
+				if (!configAccess.isActionIdExist(conn, actionId)) {
 					objResponse.put("message", "Cannot update action. Action not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				// TODO parse jsonObject to action
-				ActionModel action = new ActionModel();
-				configAccess.updateAction(conn, configId, action);
+				configAccess.updateAction(conn, actionModel);
 				objResponse.put("message", "Action updated");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -2341,16 +2325,16 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isActionIdExist(conn, configId, actionId)) {
+				if (!configAccess.isActionIdExist(conn, actionId)) {
 					objResponse.put("message", "Cannot delete action. Action not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				configAccess.deleteAction(conn, configId, actionId);
-				configAccess.removeElementFromMapping(conn, configId, actionId);
-				notifyObservers();
+				configAccess.deleteAction(conn, actionId);
+				configAccess.removeElementFromMapping(conn, configId, actionId, "action");
+				notifyObservers(configId);
 				objResponse.put("message", "Action deleted");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -2385,11 +2369,12 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a level for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param jsonObject Level in JSON
+	 * @param lsitenTo String the Listener should listen to
+	 * @param levelModel Level in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/level/{configId}")
+	@Path("/level/{configId}/{listenTo}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created level successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2397,11 +2382,12 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerLevel", notes = "Create and register a level to a configuration")
 	public Response registerLevel(
 			@PathParam("configId") String configId,
-			@ApiParam(value = "Level detail in JSON", required = true) JSONObject jsonObject) {
+			@PathParam("listenTo") String listenTo,
+			@ApiParam(value = "Level detail in JSON", required = true) LevelModel levelModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/configurator/level/" + configId, true);
+				"POST " + "gamification/configurator/level/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
 		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
@@ -2422,18 +2408,16 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				//TODO parse jsonobject
-				LevelModel level = new LevelModel();
 				try {
-					configAccess.createLevel(conn, configId ,level);
-					Integer levelId = level.getNumber();
-					configAccess.addElementToMapping(conn, configId, levelId.toString());
-					notifyObservers();
+					configAccess.createLevel(conn, levelModel);
+					Integer levelId = levelModel.getLevelNumber();
+					configAccess.addElementToMapping(conn, configId, levelId.toString(), listenTo, "level");
+					notifyObservers(configId);
 					
 				} catch (SQLException e) {
 					e.printStackTrace();
 					objResponse.put("message",
-							"Cannot register and create level. Failed to upload " + level + ". " + e.getMessage());
+							"Cannot register and create level. Failed to upload " + levelModel + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
@@ -2516,14 +2500,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isLevelIdExist(conn, configId, levelId)) {
+				if (!configAccess.isLevelIdExist(conn, levelId)) {
 					objResponse.put("message", "Cannot get level. Level not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				LevelModel level = configAccess.getLevelWithId(conn, configId, levelId);
+				LevelModel level = configAccess.getLevelWithId(conn, Integer.parseInt(levelId));
 				if(level == null){
 					objResponse.put("message", "Level Null, Cannot find level with " + levelId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -2574,7 +2558,7 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId Config ID obtained from LMS
 	 * @param levelId  to be worked on
-	 * @param jsonObject Level in JSON
+	 * @param levelModel Level in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@PUT
@@ -2587,7 +2571,7 @@ public class ListenerConfigurator extends RESTService {
 	public Response updateLevel(
 			@PathParam("configId") String configId,
 			@PathParam("levelId") String levelId,
-			@ApiParam(value = "Level detail in JSON", required = true) JSONObject jsonObject) {
+			@ApiParam(value = "Level detail in JSON", required = true) LevelModel levelModel) {
 
 		// Request log
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -2623,16 +2607,14 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isLevelIdExist(conn, configId, levelId)) {
+				if (!configAccess.isLevelIdExist(conn, levelId)) {
 					objResponse.put("message", "Cannot update level. Level not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				// TODO parse jsonObject to level
-				LevelModel level = new LevelModel();
-				configAccess.updateLevel(conn, configId, level);
+				configAccess.updateLevel(conn, levelModel);
 				objResponse.put("message", "Level updated");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -2713,16 +2695,16 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
 							.build();
 				}
-				if (!configAccess.isLevelIdExist(conn, configId, levelId)) {
+				if (!configAccess.isLevelIdExist(conn, levelId)) {
 					objResponse.put("message", "Cannot delete level. Level not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
 							.build();
 				}
-				configAccess.deleteLevel(conn, configId, levelId);
-				configAccess.removeElementFromMapping(conn, configId, levelId);
-				notifyObservers();
+				configAccess.deleteLevel(conn, levelId);
+				configAccess.removeElementFromMapping(conn, configId, levelId, "level");
+				notifyObservers(configId);
 				objResponse.put("message", "Level deleted");
 				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
 		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
@@ -2753,48 +2735,49 @@ public class ListenerConfigurator extends RESTService {
 		}
 	}
 
-	//TODO improve notification to notify only those observers, in which the mapping changed
-	private void notifyObservers(){
-		Iterator<URL> it = observers.iterator();
-		if (it.hasNext()) {
-			HttpURLConnection connection = null;
-			try {
-				URL url = it.next();
-				connection = (HttpURLConnection) url.openConnection();
-				connection.setDoInput(true);
-				connection.setDoOutput(true);
-				connection.setRequestMethod("POST");
-				connection.setRequestProperty("Content-Type", "application/json; utf-8");
-				String jsonInputString = "{\"changedmapping\":\"true\"";
-				try (OutputStream os = connection.getOutputStream()) {
-					byte[] input = jsonInputString.getBytes("utf-8");
-					os.write(input, 0, input.length);
-				}
-				catch (IOException e){
+
+	private void notifyObservers(String configId){
+		for(Map.Entry<String, URL> entry : observers.entrySet()){
+			if (entry.getKey().equals(configId)) {
+				HttpURLConnection connection = null;
+				try {
+					URL url = entry.getValue();
+					connection = (HttpURLConnection) url.openConnection();
+					connection.setDoInput(true);
+					connection.setDoOutput(true);
+					connection.setRequestMethod("POST");
+					connection.setRequestProperty("Content-Type", "application/json; utf-8");
+					String jsonInputString = "{\"changedmapping\":\"true\"";
+					try (OutputStream os = connection.getOutputStream()) {
+						byte[] input = jsonInputString.getBytes("utf-8");
+						os.write(input, 0, input.length);
+					}
+					catch (IOException e){
+						e.printStackTrace();
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								"Failed to notify observers of mapping changes" + e.getMessage());
+					}
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_25,
+							"Notified observer" + url + "with status" + connection.getResponseCode());
+				}catch (Exception e) {
 					e.printStackTrace();
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							"Failed to notify observers of mapping changes" + e.getMessage());
-				}
-				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_25,
-						"Notified observer" + url + "with status" + connection.getResponseCode());
-			}catch (Exception e) {
-				e.printStackTrace();
-				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
-						"Failed to notify observers of mapping changes" + e.getMessage());
-			}finally {	
-				if (connection != null) {
-				connection.disconnect();
+				}finally {	
+					if (connection != null) {
+					connection.disconnect();
+					}
 				}
 			}
 		}
 	}
 
+
 	/**
 	 * Notifies registers observers in case mapping changed
 	 * 
 	 * @param configId config
-	 * @param jsonObject contains url address to be notified on, when mapping
-	 *                   changes, in key "url"
+	 * @param jsonObject where key should be "url" and value the url address to be notified on changes
 	 * @return Response
 	 */
 	@POST
@@ -2803,6 +2786,7 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerObserver", notes = "Register an observer to a configuration")
 	public Response registerObserver(@PathParam("configId") String configId,
 			@ApiParam(value = "Observer url in JSON", required = true) JSONObject jsonObject) {
+		
 		long randomLong = new Random().nextLong(); // To be able to match
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
 				"POST " + "gamification/configurator/register/" + configId, true);
@@ -2852,7 +2836,7 @@ public class ListenerConfigurator extends RESTService {
 						(String) objResponse.get("message"));
 				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
 			}
-			observers.add(url);
+			observers.put(configId, url);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 			return Response.status(HttpURLConnection.HTTP_OK).build();
 		} catch (SQLException e) {
@@ -2869,30 +2853,5 @@ public class ListenerConfigurator extends RESTService {
 				logger.printStackTrace(e);
 			}
 		}
-	}
-	
-	/**
-	 * Register a game for a given configuration
-	 * 
-	 * @param gameModel Game in JSON
-	 * @return HTTP Response returned as JSON object
-	 */
-	@POST
-	@Path("/test")
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_JSON)
-	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created game successfully"),
-			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
-			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
-	@ApiOperation(value = "registerGame", notes = "Create and register a game to a configuration")
-	public Response testResponse(
-			@ApiParam(value = "Game detail in JSON", required = true) GameModel gameModel) {
-
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
-			return unauthorizedMessage();
-		}
-		return Response.status(200).entity(gameModel).build();
 	}
 }
