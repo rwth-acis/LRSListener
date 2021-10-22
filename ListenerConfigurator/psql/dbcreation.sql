@@ -1,4 +1,7 @@
-﻿DROP DATABASE IF EXISTS configuration;
+﻿CREATE ROLE configurator WITH ENCRYPTED PASSWORD 'configurator';
+ALTER ROLE configurator WITH LOGIN;
+
+DROP DATABASE IF EXISTS configuration;
 
 CREATE DATABASE configuration;
 

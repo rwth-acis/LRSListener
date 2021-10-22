@@ -11,6 +11,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,15 +27,48 @@ import java.net.URL;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import i5.las2peer.api.Service;
+import i5.las2peer.api.ServiceException;
+
 @SuppressWarnings("unused")
-public class LRSListener {
+public class LRSListener extends Service implements Runnable{
+	
+	private Thread thread;
+
+	@Override
+	public void onStart() throws ServiceException {
+		thread = new Thread(this);
+		thread.setDaemon(true);
+		thread.start();
+	}
+	
+	@Override
+	public void onStop() {
+		thread.interrupt();
+	}
+	
+	@Override
+	public void run() {
+		try {
+			startListen();
+		} catch (SQLException e) {
+			System.out.println("Exception handeled in run method");
+			e.printStackTrace();
+		}
+	}
 	/**
-	 * Main method. Starts the application and contains the listening loop.
+	 * Starts the application and contains the listening loop.
 	 * 
-	 * @param args arguments will be ignored
-	 * @throws SQLException
+	 * @throws SQLException in case of sql error
 	 */
-	public static void main(String[] args) throws SQLException {
+	public static void startListen() throws SQLException {
+		//Get config first
+		//subscribe to configuration
+		//create bollean to reload config
+		//listen to cchanges ??? how
+		//when boolean is true, reload configuration ->timecheck neccessary??
+		//proceed with normal listening with reeceived configuration
+		
 		HttpClient client = new HttpClient();
 		client.setToken(
 				"Basic NjM2NmZiZDgzNDU5M2M3MDU5ODU3ZTg4ODQwYjMyZGRmMTY1NjQwMzo0MGUxZjRlZmRlNDFlM2JlZTFiMWJlOTIxNDQ1ODc5OWEwMWZhNDAy\"");
