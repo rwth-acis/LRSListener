@@ -41,6 +41,22 @@ WITH (
 );
 ALTER TABLE model.quest_data OWNER TO configurator;
 
+CREATE TABLE model.quest_action_data
+(
+  quest_id character varying(20) NOT NULL
+  action_id character varying(20) NOT NULL,
+  
+  CONSTRAINT quest__action_pkey PRIMARY KEY (quest_id, action_id),
+  CONSTRAINT quest_id FOREIGN KEY (quest_id)
+    REFERENCES model.quest_data (quest_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT action_id FOREIGN KEY (action_id)
+    REFERENCES model.action_data (action_id) ON UPDATE CASCADE ON DELETE CASCADE
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.quest_action_data OWNER TO configurator;
+
 CREATE TABLE model.achievement_data
 (
   achievement_id character varying(20) NOT NULL,

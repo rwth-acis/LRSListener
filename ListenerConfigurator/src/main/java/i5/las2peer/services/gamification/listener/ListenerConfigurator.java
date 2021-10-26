@@ -41,7 +41,6 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
-import net.minidev.json.JSONObject;
 
 import i5.las2peer.restMapper.RESTService;
 import i5.las2peer.api.security.UserAgent;
@@ -52,6 +51,10 @@ import i5.las2peer.api.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 
 /**
  * ListenerConfigurator Service
@@ -98,7 +101,7 @@ public class ListenerConfigurator extends RESTService {
 		JSONObject objResponse = new JSONObject();
 		objResponse.put("message", "You are not authorized");
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-		return Response.status(HttpURLConnection.HTTP_UNAUTHORIZED).entity(objResponse.toJSONString())
+		return Response.status(HttpURLConnection.HTTP_UNAUTHORIZED).entity(objResponse.toString())
 				.type(MediaType.APPLICATION_JSON).build();
 	}
 
@@ -149,7 +152,7 @@ public class ListenerConfigurator extends RESTService {
 				objResponse.put("message", "Cannot create configuration.Cufigration ID already exist!");
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 
@@ -161,7 +164,7 @@ public class ListenerConfigurator extends RESTService {
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong,
 						true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -169,7 +172,7 @@ public class ListenerConfigurator extends RESTService {
 						"Cannot create configuration. Failed to upload " + configId + ". " + e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.type(MediaType.APPLICATION_JSON).build();
 			}
 
@@ -178,7 +181,7 @@ public class ListenerConfigurator extends RESTService {
 			objResponse.put("message",
 					"Cannot create configuration. Failed to upload " + configId + ". " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 
 		} catch (NullPointerException e) {
@@ -186,7 +189,7 @@ public class ListenerConfigurator extends RESTService {
 			objResponse.put("message",
 					"Cannot create configuration. Failed to upload " + configId + ". " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		}
 		// always close connections
@@ -240,7 +243,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot get configuration detail. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 			} catch (SQLException e1) {
@@ -250,7 +253,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 			configModel = configAccess.getConfigModelWithId(conn, configId);
@@ -258,7 +261,7 @@ public class ListenerConfigurator extends RESTService {
 				objResponse.put("message", "Configuration Null, Cannot find configuration with " + configId);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 			}
 			ObjectMapper mapper = new ObjectMapper();
 			mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -272,7 +275,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get configuration detail. DB Error. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get configuration detail. JSON processing error. " + e.getMessage());
@@ -332,7 +335,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot update configuration detail. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 			} catch (SQLException e1) {
@@ -342,7 +345,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 			try {
@@ -351,19 +354,19 @@ public class ListenerConfigurator extends RESTService {
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_19, "" + randomLong,
 						true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_28, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_OK).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_OK).entity(objResponse.toString()).build();
 			} catch (SQLException e) {
 				objResponse.put("message", "Configuration could not be updated. DB error");
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update configuration. DB Error. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 		} finally {
 			try {
 				if (conn != null) {
@@ -411,7 +414,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot get configuration detail. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 			} catch (SQLException e1) {
@@ -421,7 +424,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 			configAccess.deleteConfig(conn, configId);
@@ -430,7 +433,7 @@ public class ListenerConfigurator extends RESTService {
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_21, "" + randomLong, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_30, "" + name, true);
 
-			return Response.status(HttpURLConnection.HTTP_OK).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_OK).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 
 		} catch (SQLException e) {
@@ -438,7 +441,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot delete configuration. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		}
 		// always close connections
@@ -486,7 +489,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot get configuration mapping. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 			} catch (SQLException e1) {
@@ -496,10 +499,10 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
-			JSONObject mapping = configAccess.getMapping(conn, configId);
+			JSONArray mapping = configAccess.getMapping(conn, configId);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
 //			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
@@ -556,7 +559,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot register game. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 
@@ -570,11 +573,11 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register and create game. Failed to upload " + gameModel.getGameId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 				}
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 			} catch (SQLException e1) {
 				e1.printStackTrace();
 				objResponse.put("message",
@@ -582,14 +585,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register game. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
@@ -638,7 +641,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot get game. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -648,21 +651,21 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isGameIdExist(conn, gameId)) {
 					objResponse.put("message", "Cannot get game. Game not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				GameModel game = configAccess.getGameWithId(conn, gameId);
 				if(game == null){
 					objResponse.put("message", "Game Null, Cannot find game with " + gameId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).type(MediaType.APPLICATION_JSON).build();
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
 				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
@@ -680,7 +683,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
@@ -693,7 +696,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get game. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -745,7 +748,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot update game. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -755,14 +758,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isGameIdExist(conn, gameId)) {
 					objResponse.put("message", "Cannot update game. Game not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.updateGame(conn, gameModel);
@@ -778,14 +781,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update game. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -833,7 +836,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot delete game. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -843,14 +846,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isGameIdExist(conn, gameId)) {
 					objResponse.put("message", "Cannot delete game. Game not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				
@@ -869,14 +872,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register game. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -927,7 +930,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot register quest. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				try {
@@ -940,11 +943,11 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register and create quest. Failed to upload " + questModel.getQuestId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 				}
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 			} catch (SQLException e1) {
 				e1.printStackTrace();
 				objResponse.put("message",
@@ -952,14 +955,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register quest. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
@@ -1007,7 +1010,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot get quest. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1017,21 +1020,21 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isQuestIdExist(conn, questId)) {
 					objResponse.put("message", "Cannot get quest. Quest not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				QuestModel quest = configAccess.getQuestWithId(conn, questId);
 				if(quest == null){
 					objResponse.put("message", "Quest Null, Cannot find quest with " + questId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).type(MediaType.APPLICATION_JSON).build();
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
 				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
@@ -1049,7 +1052,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
@@ -1057,12 +1060,18 @@ public class ListenerConfigurator extends RESTService {
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(e.getMessage())
 						.build();
+			} catch (IOException e) {
+				e.printStackTrace();
+				objResponse.put("message", "Cannot get quest. Failed to retrieve data. " + e.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get quest. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1114,7 +1123,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot update quest. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1124,14 +1133,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isQuestIdExist(conn, questId)) {
 					objResponse.put("message", "Cannot update quest. Quest not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.updateQuest(conn, questModel);
@@ -1147,14 +1156,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update quest. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1202,7 +1211,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot delete quest. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1212,14 +1221,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isQuestIdExist(conn, questId)) {
 					objResponse.put("message", "Cannot delete quest. Quest not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.deleteQuest(conn, questId);
@@ -1237,14 +1246,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot delete quest. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1296,7 +1305,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot register achievement. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				try {
@@ -1309,11 +1318,11 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register and create achievement. Failed to upload " + achievementModel.getAchievementId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 				}
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 			} catch (SQLException e1) {
 				e1.printStackTrace();
 				objResponse.put("message",
@@ -1321,14 +1330,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register achievement. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
@@ -1378,7 +1387,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot get achievement. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1388,21 +1397,21 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isAchievementIdExist(conn, achievementId)) {
 					objResponse.put("message", "Cannot get achievement. Achievement not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				AchievementModel achievement = configAccess.getAchievementWithId(conn, achievementId);
 				if(achievement == null){
 					objResponse.put("message", "Achievement Null, Cannot find achievement with " + achievementId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).type(MediaType.APPLICATION_JSON).build();
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
 				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
@@ -1420,7 +1429,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
@@ -1433,7 +1442,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get achievement. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1486,7 +1495,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot update achievement. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1496,14 +1505,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isAchievementIdExist(conn, achievementId)) {
 					objResponse.put("message", "Cannot update achievement. Achievement not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.updateAchievement(conn, achievementModel);
@@ -1519,14 +1528,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update achievement. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1576,7 +1585,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot delete achievement. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1586,14 +1595,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isAchievementIdExist(conn, achievementId)) {
 					objResponse.put("message", "Cannot delete achievement. Achievement not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.deleteAchievement(conn, achievementId);
@@ -1611,14 +1620,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot delete achievement. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1669,7 +1678,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot register badge. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				try {
@@ -1682,11 +1691,11 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register and create badge. Failed to upload " + badgeModel.getBadgeId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 				}
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 			} catch (SQLException e1) {
 				e1.printStackTrace();
 				objResponse.put("message",
@@ -1694,14 +1703,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register badge. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
@@ -1749,7 +1758,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot get badge. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1759,21 +1768,21 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isBadgeIdExist(conn, badgeId)) {
 					objResponse.put("message", "Cannot get badge. Badge not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				BadgeModel badge = configAccess.getBadgeWithId(conn, badgeId);
 				if(badge == null){
 					objResponse.put("message", "Badge Null, Cannot find badge with " + badgeId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).type(MediaType.APPLICATION_JSON).build();
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
 				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
@@ -1791,7 +1800,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
@@ -1804,7 +1813,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get badge. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1856,7 +1865,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot update badge. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1866,14 +1875,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isBadgeIdExist(conn, badgeId)) {
 					objResponse.put("message", "Cannot update badge. Badge not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.updateBadge(conn, badgeModel);
@@ -1889,14 +1898,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update badge. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -1944,7 +1953,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot delete badge. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -1954,14 +1963,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isBadgeIdExist(conn, badgeId)) {
 					objResponse.put("message", "Cannot delete badge. Badge not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.deleteBadge(conn, badgeId);
@@ -1979,14 +1988,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot delete badge. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2037,7 +2046,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot register action. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				try {
@@ -2050,11 +2059,11 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register and create action. Failed to upload " + actionModel.getActionId() + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 				}
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 			} catch (SQLException e1) {
 				e1.printStackTrace();
 				objResponse.put("message",
@@ -2062,14 +2071,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register action. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
@@ -2117,7 +2126,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot get action. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -2127,21 +2136,21 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isActionIdExist(conn, actionId)) {
 					objResponse.put("message", "Cannot get action. Action not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				ActionModel action = configAccess.getActionWithId(conn, actionId);
 				if(action == null){
 					objResponse.put("message", "Action Null, Cannot find action with " + actionId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).type(MediaType.APPLICATION_JSON).build();
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
 				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
@@ -2159,7 +2168,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
@@ -2172,7 +2181,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register action. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2224,7 +2233,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot update action. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -2234,14 +2243,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isActionIdExist(conn, actionId)) {
 					objResponse.put("message", "Cannot update action. Action not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.updateAction(conn, actionModel);
@@ -2257,14 +2266,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update action. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2312,7 +2321,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot delete action. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -2322,14 +2331,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isActionIdExist(conn, actionId)) {
 					objResponse.put("message", "Cannot delete action. Action not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.deleteAction(conn, actionId);
@@ -2347,14 +2356,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot delete action. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2405,7 +2414,7 @@ public class ListenerConfigurator extends RESTService {
 					objResponse.put("message", "Cannot register level. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				try {
@@ -2420,11 +2429,11 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register and create level. Failed to upload " + levelModel + ". " + e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString()).build();
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 				}
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
-				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
 			} catch (SQLException e1) {
 				e1.printStackTrace();
 				objResponse.put("message",
@@ -2432,14 +2441,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e1.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot register level. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
@@ -2487,7 +2496,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot get level. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -2497,21 +2506,21 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isLevelIdExist(conn, levelId)) {
 					objResponse.put("message", "Cannot get level. Level not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				LevelModel level = configAccess.getLevelWithId(conn, Integer.parseInt(levelId));
 				if(level == null){
 					objResponse.put("message", "Level Null, Cannot find level with " + levelId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).type(MediaType.APPLICATION_JSON).build();
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
 				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
@@ -2529,7 +2538,7 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			} catch (JsonProcessingException e) {
 				e.printStackTrace();
@@ -2542,7 +2551,7 @@ public class ListenerConfigurator extends RESTService {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get level. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2594,7 +2603,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot update level. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -2604,14 +2613,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isLevelIdExist(conn, levelId)) {
 					objResponse.put("message", "Cannot update level. Level not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.updateLevel(conn, levelModel);
@@ -2627,14 +2636,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot update level. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2682,7 +2691,7 @@ public class ListenerConfigurator extends RESTService {
 						objResponse.put("message", "Cannot delete level. Configuration not found");
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 								(String) objResponse.get("message"));
-						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 								.build();
 					}
 				} catch (SQLException e) {
@@ -2692,14 +2701,14 @@ public class ListenerConfigurator extends RESTService {
 									+ e.getMessage());
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 				if (!configAccess.isLevelIdExist(conn, levelId)) {
 					objResponse.put("message", "Cannot delete level. Level not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
 				configAccess.deleteLevel(conn, levelId);
@@ -2717,14 +2726,14 @@ public class ListenerConfigurator extends RESTService {
 								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot delete level. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
 		} finally {
 			try {
@@ -2803,7 +2812,7 @@ public class ListenerConfigurator extends RESTService {
 							"Cannot register observer to confiId " + configId + ". Cufigration ID already exist!");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 							.build();
 				}
 			} catch (SQLException e) {
@@ -2811,21 +2820,21 @@ public class ListenerConfigurator extends RESTService {
 				objResponse.put("message", "Cannot register observer to configId " + configId + ". " + e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.type(MediaType.APPLICATION_JSON).build();
 			}
 			if (jsonObject == null) {
 				objResponse.put("message", "Cannot register observer. No data received");
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 			}
 			String receivedURL = jsonObject.get("url").toString();
 			if (receivedURL == null) {
 				objResponse.put("message", "Cannot register observer. Url is empty");
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 			}
 			try {
 				url = new URL(receivedURL);
@@ -2834,7 +2843,7 @@ public class ListenerConfigurator extends RESTService {
 				objResponse.put("message", "Cannot register observer. Url has wrong format");
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toJSONString()).build();
+				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 			}
 			observers.put(configId, url);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
@@ -2844,7 +2853,7 @@ public class ListenerConfigurator extends RESTService {
 			objResponse.put("message",
 					"Cannot register observer. Failed to check " + configId + ". " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toJSONString())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.type(MediaType.APPLICATION_JSON).build();
 		} finally {
 			try {
