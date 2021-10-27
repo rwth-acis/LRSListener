@@ -18,10 +18,10 @@ ALTER TABLE model.game_data OWNER TO configurator;
 
 CREATE TABLE model.quest_data
 (
-  quest_id character varying(20) NOT NULL
-  name character varying(20) NOT NULL,
+  quest_id character varying(20) NOT null,
+  "name" character varying(20) NOT NULL,
   description character varying(100),
-  status DEFAULT ''REVEALED'',
+  status character varying(20) DEFAULT 'REVEALED',
   achievement_id character varying(20),
   quest_flag boolean DEFAULT false,
   quest_id_completed character varying(20) NULL,
@@ -43,7 +43,7 @@ ALTER TABLE model.quest_data OWNER TO configurator;
 
 CREATE TABLE model.quest_action_data
 (
-  quest_id character varying(20) NOT NULL
+  quest_id character varying(20) NOT null,
   action_id character varying(20) NOT NULL,
   
   CONSTRAINT quest__action_pkey PRIMARY KEY (quest_id, action_id),
@@ -60,7 +60,7 @@ ALTER TABLE model.quest_action_data OWNER TO configurator;
 CREATE TABLE model.achievement_data
 (
   achievement_id character varying(20) NOT NULL,
-  name character varying(20) NOT NULL,
+  "name" character varying(20) NOT NULL,
   description character varying(100),
   point_value integer NOT NULL DEFAULT 0,
   badge_id character varying(20),
@@ -78,7 +78,7 @@ ALTER TABLE model.achievement_data OWNER TO configurator;
 CREATE TABLE model.badge_data
 (
   badge_id character varying(20) NOT NULL,
-  name character varying(20) NOT NULL,
+  "name" character varying(20) NOT NULL,
   description character varying(100),
   use_notification boolean,
   notif_message character varying,
@@ -91,8 +91,8 @@ ALTER TABLE model.badge_data OWNER TO configurator;
 
 CREATE TABLE model.action_data
 (
-  action_id character varying(20) NOT NULL
-  name character varying(20) NOT NULL,
+  action_id character varying(20) NOT null,
+  "name" character varying(20) NOT NULL,
   description character varying(100),
   point_value integer NOT NULL DEFAULT 0,
   use_notification boolean,
@@ -106,8 +106,8 @@ ALTER TABLE model.action_data OWNER TO configurator;
 
 CREATE TABLE model.level_data
 (
-  level_num integer NOT NULL
-  name character varying(20) NOT NULL,
+  level_num integer NOT null,
+  "name" character varying(20) NOT NULL,
   point_value integer NOT NULL DEFAULT 0,
   use_notification boolean,
   notif_message character varying,
@@ -122,8 +122,8 @@ ALTER TABLE model.level_data OWNER TO configurator;
 CREATE TABLE model.config_data
 (
   config_id character varying(20) NOT NULL,
-  name character varying(20) NOT NULL,
-  description character varying(100)
+  "name" character varying(20) NOT NULL,
+  description character varying(100),
   CONSTRAINT config_id PRIMARY KEY (config_id)
 )
 WITH (
@@ -217,13 +217,13 @@ ALTER TABLE listen.action_info OWNER TO configurator;
 CREATE TABLE listen.level_info
 (
   config_id character varying(20) NOT NULL,
-  level_num character varying(20) NOT NULL,
+  level_num integer NOT NULL,
   listen_to character varying(100),
   CONSTRAINT config_level_pkey PRIMARY KEY (config_id, level_num),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT level_num FOREIGN KEY (level_num)
-    REFERENCES model.level_data (level_id) ON UPDATE CASCADE ON DELETE CASCADE
+    REFERENCES model.level_data (level_num) ON UPDATE CASCADE ON DELETE CASCADE
 )
 WITH (
   OIDS=FALSE

@@ -78,7 +78,7 @@ public class ListenerConfigurator extends RESTService {
 	private final L2pLogger logger = L2pLogger.getInstance(ListenerConfigurator.class.getName());
 	private String jdbcDriverClassName;
 	private String jdbcUrl;
-	private String jdbcSchema;
+	private String jdbcDatabase;
 	private String jdbcLogin;
 	private String jdbcPass;
 	private DatabaseManager dbm;
@@ -87,7 +87,7 @@ public class ListenerConfigurator extends RESTService {
 
 	public ListenerConfigurator() {
 		setFieldValues();
-		dbm = new DatabaseManager(jdbcDriverClassName, jdbcLogin, jdbcPass, jdbcUrl, jdbcSchema);
+		dbm = new DatabaseManager(jdbcDriverClassName, jdbcLogin, jdbcPass, jdbcUrl, jdbcDatabase);
 		this.configAccess = new ConfigDAO();
 		this.observers = new HashMap<String,URL>();
 	}
@@ -455,75 +455,10 @@ public class ListenerConfigurator extends RESTService {
 	}
 
 	/**
-	 * Acquire a Mapping to Listen to mapping changes
-	 * 
-	 * @param configId Config ID obtained from LMS
-	 * @return HTTP Response returned as JSON object
-	 */
-	@GET
-	@Path("/mapping/{configId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Config Delete Success"),
-			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
-			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
-	@ApiOperation(value = "deleteConfiguration", notes = "Delete an configuration")
-	public Response getMapping(@PathParam("configId") String configId) {
-
-		// Request log
-		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"GET " + "gamification/configurator/mapping/" + configId, true);
-		long randomLong = new Random().nextLong(); // To be able to match
-
-//		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-//		String name = userAgent.getLoginName();
-//		if (name.equals("anonymous")) {
-//			return unauthorizedMessage();
-//		}
-		Connection conn = null;
-		JSONObject objResponse = new JSONObject();
-		try {
-			conn = dbm.getConnection();
-			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
-			try {
-				if (!configAccess.isConfigIdExist(conn, configId)) {
-					objResponse.put("message", "Cannot get configuration mapping. Configuration not found");
-					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
-							(String) objResponse.get("message"));
-					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
-							.build();
-				}
-			} catch (SQLException e1) {
-				e1.printStackTrace();
-				objResponse.put("message",
-						"Cannot get configuration mapping. Cannot check whether configuration ID exist or not. Database error. "
-								+ e1.getMessage());
-				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
-						(String) objResponse.get("message"));
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
-						.build();
-			}
-			JSONArray mapping = configAccess.getMapping(conn, configId);
-			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
-//			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
-			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
-			return Response.status(HttpURLConnection.HTTP_OK).entity(mapping).build();
-		} catch (SQLException e) {
-
-		} finally {
-			try {
-
-			} catch (Exception e) {
-				logger.printStackTrace(e);
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * Register a game for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param lsitenTo String the Listener should listen to
+	 * @param listenTo String the Listener should listen to
 	 * @param gameModel Game in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
@@ -717,6 +652,7 @@ public class ListenerConfigurator extends RESTService {
 	 */
 	@PUT
 	@Path("/game/{configId}/{gameId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated game successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -894,12 +830,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a quest for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param lsitenTo String the Listener should listen to
+	 * @param listenTo String the Listener should listen to
 	 * @param questModel Quest in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
 	@Path("/quest/{configId}/{listenTo}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created quest successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -1092,6 +1029,7 @@ public class ListenerConfigurator extends RESTService {
 	 */
 	@PUT
 	@Path("/quest/{configId}/{questId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated quest successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -1268,12 +1206,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a achievement for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param lsitenTo String the Listener should listen to
+	 * @param listenTo String the Listener should listen to
 	 * @param achievementModel Achievement in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
 	@Path("/achievement/{configId}/{listenTo}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = {
 			@ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created achievement successfully"),
@@ -1463,6 +1402,7 @@ public class ListenerConfigurator extends RESTService {
 	 */
 	@PUT
 	@Path("/achievement/{configId}/{achievementId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = {
 			@ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated achievement successfully"),
@@ -1642,12 +1582,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a badge for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param lsitenTo String the Listener should listen to
+	 * @param listenTo String the Listener should listen to
 	 * @param badgeModel Badge in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
 	@Path("/badge/{configId}/{listenTo}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created badge successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -1834,6 +1775,7 @@ public class ListenerConfigurator extends RESTService {
 	 */
 	@PUT
 	@Path("/badge/{configId}/{badgeId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated badge successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2010,12 +1952,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a action for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param lsitenTo String the Listener should listen to
+	 * @param listenTo String the Listener should listen to
 	 * @param actionModel Action in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
 	@Path("/action/{configId}/{listenTo}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created action successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2202,6 +2145,7 @@ public class ListenerConfigurator extends RESTService {
 	 */
 	@PUT
 	@Path("/action/{configId}/{actionId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated action successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2378,12 +2322,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a level for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
-	 * @param lsitenTo String the Listener should listen to
+	 * @param listenTo String the Listener should listen to
 	 * @param levelModel Level in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
 	@Path("/level/{configId}/{listenTo}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created level successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2516,7 +2461,7 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
 							.build();
 				}
-				LevelModel level = configAccess.getLevelWithId(conn, Integer.parseInt(levelId));
+				LevelModel level = configAccess.getLevelWithId(conn, levelId);
 				if(level == null){
 					objResponse.put("message", "Level Null, Cannot find level with " + levelId);
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
@@ -2572,6 +2517,7 @@ public class ListenerConfigurator extends RESTService {
 	 */
 	@PUT
 	@Path("/level/{configId}/{levelId}")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated level successfully"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
@@ -2744,43 +2690,79 @@ public class ListenerConfigurator extends RESTService {
 		}
 	}
 
+	/**
+	 * Acquire a Mapping to Listen to mapping changes
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @return HTTP Response returned as JSON object
+	 */
+	@GET
+	@Path("/mapping/{configId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Config Delete Success"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "deleteConfiguration", notes = "Delete an configuration")
+	public Response getMapping(@PathParam("configId") String configId) {
 
-	private void notifyObservers(String configId){
-		for(Map.Entry<String, URL> entry : observers.entrySet()){
-			if (entry.getKey().equals(configId)) {
-				HttpURLConnection connection = null;
-				try {
-					URL url = entry.getValue();
-					connection = (HttpURLConnection) url.openConnection();
-					connection.setDoInput(true);
-					connection.setDoOutput(true);
-					connection.setRequestMethod("POST");
-					connection.setRequestProperty("Content-Type", "application/json; utf-8");
-					String jsonInputString = "{\"changedmapping\":\"true\"";
-					try (OutputStream os = connection.getOutputStream()) {
-						byte[] input = jsonInputString.getBytes("utf-8");
-						os.write(input, 0, input.length);
-					}
-					catch (IOException e){
-						e.printStackTrace();
-						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
-								"Failed to notify observers of mapping changes" + e.getMessage());
-					}
-					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_25,
-							"Notified observer" + url + "with status" + connection.getResponseCode());
-				}catch (Exception e) {
-					e.printStackTrace();
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"GET " + "gamification/configurator/mapping/" + configId, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				if (!configAccess.isConfigIdExist(conn, configId)) {
+					objResponse.put("message", "Cannot get configuration mapping. Configuration not found");
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
-							"Failed to notify observers of mapping changes" + e.getMessage());
-				}finally {	
-					if (connection != null) {
-					connection.disconnect();
-					}
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
 				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+				objResponse.put("message",
+						"Cannot get configuration mapping. Cannot check whether configuration ID exist or not. Database error. "
+								+ e1.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
+			JSONArray mapping = configAccess.getMapping(conn, configId);
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.enable(SerializationFeature.INDENT_OUTPUT);
+			String mappingString = mapper.writeValueAsString(mapping);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
+			return Response.status(HttpURLConnection.HTTP_OK).entity(mapping.toString()).build();
+		} catch (SQLException e) {
+
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot get level detail. JSON processing error. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(e.getMessage())
+					.build();
+		} finally {
+			try {
+
+			} catch (Exception e) {
+				logger.printStackTrace(e);
 			}
 		}
+		return null;
 	}
-
 
 	/**
 	 * Notifies registers observers in case mapping changed
@@ -2860,6 +2842,42 @@ public class ListenerConfigurator extends RESTService {
 				conn.close();
 			} catch (SQLException e) {
 				logger.printStackTrace(e);
+			}
+		}
+	}
+	
+	private void notifyObservers(String configId){
+		for(Map.Entry<String, URL> entry : observers.entrySet()){
+			if (entry.getKey().equals(configId)) {
+				HttpURLConnection connection = null;
+				try {
+					URL url = entry.getValue();
+					connection = (HttpURLConnection) url.openConnection();
+					connection.setDoInput(true);
+					connection.setDoOutput(true);
+					connection.setRequestMethod("POST");
+					connection.setRequestProperty("Content-Type", "application/json; utf-8");
+					String jsonInputString = "{\"changedmapping\":\"true\"";
+					try (OutputStream os = connection.getOutputStream()) {
+						byte[] input = jsonInputString.getBytes("utf-8");
+						os.write(input, 0, input.length);
+					}
+					catch (IOException e){
+						e.printStackTrace();
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								"Failed to notify observers of mapping changes" + e.getMessage());
+					}
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_25,
+							"Notified observer" + url + "with status" + connection.getResponseCode());
+				}catch (Exception e) {
+					e.printStackTrace();
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							"Failed to notify observers of mapping changes" + e.getMessage());
+				}finally {	
+					if (connection != null) {
+					connection.disconnect();
+					}
+				}
 			}
 		}
 	}

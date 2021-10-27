@@ -14,14 +14,14 @@ public class DatabaseManager {
 	private static BasicDataSource dataSource;
 
 	public DatabaseManager(String jdbcDriverClassName, String jdbcLogin, String jdbcPass, String jdbcUrl,
-			String jdbcSchema) {
+			String jdbcDatabase) {
 		// prepare and configure data source
 		dataSource = new BasicDataSource();
 		dataSource.setDefaultAutoCommit(true);
 		dataSource.setDriverClassName(jdbcDriverClassName);
 		dataSource.setUsername(jdbcLogin);
 		dataSource.setPassword(jdbcPass);
-		dataSource.setUrl(jdbcUrl + jdbcSchema);
+		dataSource.setUrl(jdbcUrl + jdbcDatabase);
 		dataSource.setValidationQuery("SELECT 1");
 		dataSource.setDefaultQueryTimeout(1000);
 		dataSource.setMaxConnLifetimeMillis(100000);

@@ -26,6 +26,7 @@ dependencies {
 	implementation 'javax.ws.rs:javax.ws.rs-api:2.1'
 	implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.8.0'
 	implementation group: 'org.json', name: 'json', version: '20210307'
+	implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.23'
 	
 }
 

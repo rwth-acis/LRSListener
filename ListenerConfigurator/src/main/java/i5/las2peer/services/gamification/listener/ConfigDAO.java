@@ -37,7 +37,7 @@ public class ConfigDAO {
 	}
 
 	public ConfigModel getConfigModelWithId(Connection conn, String configId) throws SQLException {
-		stmt = conn.prepareStatement("SELECT * FROM model.config_data WHERE action_id = ?");
+		stmt = conn.prepareStatement("SELECT * FROM model.config_data WHERE config_id = ?");
 		stmt.setString(1, configId);
 		ResultSet rs = stmt.executeQuery();
 		if (rs.next()) {
@@ -117,8 +117,9 @@ public class ConfigDAO {
 	}
 
 	public boolean isLevelIdExist(Connection conn, String levelId) throws SQLException {
-		stmt = conn.prepareStatement("SELECT level_id FROM model.level_data WHERE level_id=?");
-		stmt.setString(1, levelId);
+		stmt = conn.prepareStatement("SELECT level_num FROM model.level_data WHERE level_num=?");
+		int levelNumber = Integer.parseInt(levelId);
+		stmt.setInt(1, levelNumber);
 		ResultSet rs = stmt.executeQuery();
 		if (rs.next()) {
 			return true;
@@ -141,7 +142,9 @@ public class ConfigDAO {
 		stmt.setString(1, quest.getQuestId());
 		stmt.setString(2, quest.getName());
 		stmt.setString(3, quest.getDescription());
-		stmt.setString(4, quest.getStatus().toString());
+		if (quest.getStatus() != null) {
+			stmt.setString(4, quest.getStatus().toString());
+		}
 		stmt.setString(5, quest.getAchievementId());
 		stmt.setBoolean(6, quest.isQuestFlag());
 		stmt.setString(7, quest.getQuestIdCompleted());
@@ -150,11 +153,12 @@ public class ConfigDAO {
 		stmt.setBoolean(10, quest.isUseNotification());
 		stmt.setString(11, quest.getNotificationMessage());
 		stmt.executeUpdate();
-
-		for (Pair<String, Integer> entry : quest.getActionIds()) {
-			stmt = conn.prepareStatement("Insert INTO model.quest_action_data (quest_id, action_id) VALUES (?,?)");
-			stmt.setString(1, quest.getQuestId());
-			stmt.setString(2, entry.getLeft());
+		if (quest.getActionIds() != null) {
+			for (Pair<String, Integer> entry : quest.getActionIds()) {
+				stmt = conn.prepareStatement("Insert INTO model.quest_action_data (quest_id, action_id) VALUES (?,?)");
+				stmt.setString(1, quest.getQuestId());
+				stmt.setString(2, entry.getLeft());
+			}
 		}
 	}
 
@@ -249,11 +253,14 @@ public class ConfigDAO {
 			stmt.setString(1, quest.getQuestId());
 			ResultSet rs2 = stmt.executeQuery();
 			while (rs2.next()) {
-				action_ids.add(Pair.of(rs2.getString("action_id"), 0));
+				if(rs2.getString("action_id") != "") {
+					action_ids.add(Pair.of(rs2.getString("action_id"), 0));
+				}
 			}
-			quest.setActionIds(action_ids);
-			action_ids.clear();
-			
+			if(!action_ids.isEmpty()) {
+				quest.setActionIds(action_ids);
+				action_ids.clear();
+			}
 			return quest;
 		}
 		return null;
@@ -310,8 +317,9 @@ public class ConfigDAO {
 		return null;
 	}
 
-	public LevelModel getLevelWithId(Connection conn, int levelNumber) throws SQLException {
+	public LevelModel getLevelWithId(Connection conn, String levelId) throws SQLException {
 		stmt = conn.prepareStatement("SELECT * FROM model.level_data WHERE level_num = ?");
+		int levelNumber = Integer.parseInt(levelId);
 		stmt.setInt(1, levelNumber);
 		ResultSet rs = stmt.executeQuery();
 		if (rs.next()) {
@@ -340,7 +348,9 @@ public class ConfigDAO {
 				"UPDATE model.quest_data SET name = ?, description = ?, status = ?, achievement_id = ?, quest_flag = ?, quest_id_completed = ?, point_flag = ?, point_value = ?, use_notification = ?, notif_message = ? WHERE quest_id = ?");
 		stmt.setString(1, quest.getName());
 		stmt.setString(2, quest.getDescription());
-		stmt.setString(3, quest.getStatus().toString());
+		if (quest.getStatus() != null) {
+			stmt.setString(3, quest.getStatus().toString());
+		}
 		stmt.setString(4, quest.getAchievementId());
 		stmt.setBoolean(5, quest.isQuestFlag());
 		stmt.setString(6, quest.getQuestIdCompleted());
@@ -355,14 +365,16 @@ public class ConfigDAO {
 		stmt.setString(1, quest.getQuestId());
 		stmt.executeUpdate();
 
-		PreparedStatement batchstmt = null;
-		
-		for(Pair<String,Integer> a : quest.getActionIds()){
+		if(quest.getActionIds() != null) {
+			PreparedStatement batchstmt = null;
+			
+			for(Pair<String,Integer> a : quest.getActionIds()){
 
-			batchstmt = conn.prepareStatement("INSERT INTO model.quest_action_data (quest_id, action_id) VALUES ( ?, ?)");
-			batchstmt.setString(1, quest.getQuestId());
-			batchstmt.setString(2, a.getLeft());
-			batchstmt.executeUpdate();
+				batchstmt = conn.prepareStatement("INSERT INTO model.quest_action_data (quest_id, action_id) VALUES ( ?, ?)");
+				batchstmt.setString(1, quest.getQuestId());
+				batchstmt.setString(2, a.getLeft());
+				batchstmt.executeUpdate();
+			}
 		}
 	}
 
@@ -450,86 +462,101 @@ public class ConfigDAO {
 
 	public void deleteLevel(Connection conn, String levelId) throws SQLException {
 		stmt = conn.prepareStatement("DELETE FROM model.level_data WHERE level_num = ?");
-		stmt.setString(1, levelId);
+		int levelNumber = Integer.parseInt(levelId);
+		stmt.setInt(1, levelNumber);
 		stmt.executeUpdate();
 	}
 
 	public void addElementToMapping(Connection conn, String configId, String elementId, String listenTo, String type)
 			throws SQLException {
-		switch (type) {
-		case "game": {
-			stmt = conn
-					.prepareStatement("INSERT INTO listen.game_info (config_id, game_id, listen_to) VALUES (?, ?, ?)");
-			break;
-		}
-		case "quest": {
-			stmt = conn.prepareStatement(
-					"INSERT INTO listen.quest_info (config_id, quest_id, listen_to) VALUES (?, ?, ?)");
-			break;
-		}
-		case "achievement": {
-			stmt = conn.prepareStatement(
-					"INSERT INTO listen.achievement_info (config_id, achievement_id, listen_to) VALUES (?, ?, ?)");
-			break;
-		}
-		case "badge": {
-			stmt = conn.prepareStatement(
-					"INSERT INTO listen.badge_info (config_id, badge_id, listen_to) VALUES (?, ?, ?)");
-			break;
-		}
-		case "action": {
-			stmt = conn.prepareStatement(
-					"INSERT INTO listen.action_info (config_id, action_id, listen_to) VALUES (?, ?, ?)");
-			break;
-		}
-		case "level": {
+		if (type.equals("level")) {
 			stmt = conn.prepareStatement(
 					"INSERT INTO listen.level_info (config_id, level_num, listen_to) VALUES (?, ?, ?)");
-			break;
+			int levelNumber = Integer.parseInt(elementId);
+			stmt.setString(1, configId);
+			stmt.setInt(2, levelNumber);
+			stmt.setString(3, listenTo);
+			stmt.executeUpdate();
 		}
-		default:
-			throw new IllegalArgumentException("Unexpected value: " + type);
+		else {
+			switch (type) {
+			case "game": {
+				stmt = conn
+						.prepareStatement("INSERT INTO listen.game_info (config_id, game_id, listen_to) VALUES (?, ?, ?)");
+				break;
+			}
+			case "quest": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.quest_info (config_id, quest_id, listen_to) VALUES (?, ?, ?)");
+				break;
+			}
+			case "achievement": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.achievement_info (config_id, achievement_id, listen_to) VALUES (?, ?, ?)");
+				break;
+			}
+			case "badge": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.badge_info (config_id, badge_id, listen_to) VALUES (?, ?, ?)");
+				break;
+			}
+			case "action": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.action_info (config_id, action_id, listen_to) VALUES (?, ?, ?)");
+				break;
+			}
+			
+			default:
+				throw new IllegalArgumentException("Unexpected value: " + type);
+			}
+			stmt.setString(1, configId);
+			stmt.setString(2, elementId);
+			stmt.setString(3, listenTo);
+			stmt.executeUpdate();
 		}
-		stmt.setString(1, configId);
-		stmt.setString(2, elementId);
-		stmt.setString(3, listenTo);
-		stmt.executeUpdate();
 	}
+
+		
 
 	public void removeElementFromMapping(Connection conn, String configId, String elementId, String type)
 			throws SQLException {
-		switch (type) {
-		case "game": {
-			stmt = conn.prepareStatement("DELETE FROM listen.game_info WHERE config_id = ? AND game_id = ?");
-			break;
-		}
-		case "quest": {
-			stmt = conn.prepareStatement("DELETE FROM listen.quest_info WHERE config_id = ? AND quest_id = ?");
-			break;
-		}
-		case "achievement": {
-			stmt = conn
-					.prepareStatement("DELETE FROM listen.achievement_info WHERE config_id = ? AND achievement_id = ?");
-			break;
-		}
-		case "badge": {
-			stmt = conn.prepareStatement("DELETE FROM listen.badge_info WHERE config_id = ? AND badge_id = ?");
-			break;
-		}
-		case "action": {
-			stmt = conn.prepareStatement("DELETE FROM listen.action_info WHERE config_id = ? AND action_id = ?");
-			break;
-		}
-		case "level": {
+		if (type.equals("level")) {
 			stmt = conn.prepareStatement("DELETE FROM listen.level_info WHERE config_id = ? AND level_num = ?");
-			break;
+			int levelNumber = Integer.parseInt(elementId);
+			stmt.setString(1, configId);
+			stmt.setInt(2, levelNumber);
+			stmt.executeUpdate();
 		}
-		default:
-			throw new IllegalArgumentException("Unexpected value: " + type);
+		else {
+			switch (type) {
+			case "game": {
+				stmt = conn.prepareStatement("DELETE FROM listen.game_info WHERE config_id = ? AND game_id = ?");
+				break;
+			}
+			case "quest": {
+				stmt = conn.prepareStatement("DELETE FROM listen.quest_info WHERE config_id = ? AND quest_id = ?");
+				break;
+			}
+			case "achievement": {
+				stmt = conn
+						.prepareStatement("DELETE FROM listen.achievement_info WHERE config_id = ? AND achievement_id = ?");
+				break;
+			}
+			case "badge": {
+				stmt = conn.prepareStatement("DELETE FROM listen.badge_info WHERE config_id = ? AND badge_id = ?");
+				break;
+			}
+			case "action": {
+				stmt = conn.prepareStatement("DELETE FROM listen.action_info WHERE config_id = ? AND action_id = ?");
+				break;
+			}
+			default:
+				throw new IllegalArgumentException("Unexpected value: " + type);
+			}
+			stmt.setString(1, configId);
+			stmt.setString(2, elementId);
+			stmt.executeUpdate();
 		}
-		stmt.setString(1, configId);
-		stmt.setString(2, elementId);
-		stmt.executeUpdate();
 	}
 
 	public JSONArray getMapping(Connection conn, String configId) throws SQLException {
