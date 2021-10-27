@@ -602,7 +602,6 @@ public class ListenerConfigurator extends RESTService {
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
-				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
 				mapper.enable(SerializationFeature.INDENT_OUTPUT);
 				String gameString = mapper.writeValueAsString(game);
@@ -973,7 +972,6 @@ public class ListenerConfigurator extends RESTService {
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
-				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
 				mapper.enable(SerializationFeature.INDENT_OUTPUT);
 				String questString = mapper.writeValueAsString(quest);
@@ -1352,7 +1350,6 @@ public class ListenerConfigurator extends RESTService {
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
-				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
 				mapper.enable(SerializationFeature.INDENT_OUTPUT);
 				String achievementString = mapper.writeValueAsString(achievement);
@@ -1725,7 +1722,6 @@ public class ListenerConfigurator extends RESTService {
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
-				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
 				mapper.enable(SerializationFeature.INDENT_OUTPUT);
 				String badgeString = mapper.writeValueAsString(badge);
@@ -2095,7 +2091,6 @@ public class ListenerConfigurator extends RESTService {
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
-				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
 				mapper.enable(SerializationFeature.INDENT_OUTPUT);
 				String actionString = mapper.writeValueAsString(action);
@@ -2467,7 +2462,6 @@ public class ListenerConfigurator extends RESTService {
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 				}
-				//TODO parse to JSON
 				ObjectMapper mapper = new ObjectMapper();
 				mapper.enable(SerializationFeature.INDENT_OUTPUT);
 				String levelString = mapper.writeValueAsString(level);
@@ -2739,29 +2733,23 @@ public class ListenerConfigurator extends RESTService {
 						.build();
 			}
 			JSONArray mapping = configAccess.getMapping(conn, configId);
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.enable(SerializationFeature.INDENT_OUTPUT);
-			String mappingString = mapper.writeValueAsString(mapping);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
 			return Response.status(HttpURLConnection.HTTP_OK).entity(mapping.toString()).build();
 		} catch (SQLException e) {
-
-		} catch (JsonProcessingException e) {
 			e.printStackTrace();
-			objResponse.put("message", "Cannot get level detail. JSON processing error. " + e.getMessage());
+			objResponse.put("message", "Cannot get mapping. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(e.getMessage())
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 					.build();
-		} finally {
+		}finally {
 			try {
 
 			} catch (Exception e) {
 				logger.printStackTrace(e);
 			}
 		}
-		return null;
 	}
 
 	/**
