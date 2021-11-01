@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -52,7 +50,7 @@ public class QuestModel{
 	@ApiModelProperty( value = "Point value") 
 	private int pointValue = 0;
 	@ApiModelProperty( value = "Action IDs", required = true ) 
-	private List<Pair<String, Integer>> actionIds;
+	private List<String> actionIds;
 	@ApiModelProperty( value = "Use notification status", required = true ) 
 	private boolean useNotification;
 	@ApiModelProperty( value = "Notification Message") 
@@ -168,21 +166,21 @@ public class QuestModel{
 	/**
 	 * @return the actionIds
 	 */
-	public List<Pair<String, Integer>> getActionIds() {
+	public List<String> getActionIds() {
 		return actionIds;
 	}
 	/**
 	 * @param actionIds the actionIds to set
 	 * @throws IOException IOExeption
 	 */
-	public void setActionIds(List<Pair<String, Integer>> actionIds) throws IOException {
-		this.actionIds = new ArrayList<Pair<String,Integer>>();
+	public void setActionIds(List<String> actionIds) throws IOException {
+		this.actionIds = new ArrayList<>();
 		
 		if(actionIds.isEmpty()){
 			throw new IOException("List cannot be empty.");
 		}
-		for(Pair<String,Integer> p: actionIds){
-			this.actionIds.add(Pair.of(p.getLeft(), p.getRight()));
+		for(String p: actionIds){
+			this.actionIds.add(p);
 		}
 	}
 	/**

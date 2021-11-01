@@ -131,6 +131,43 @@ WITH (
 );
 ALTER TABLE model.config_data OWNER TO configurator;
 
+
+CREATE TABLE model.streak_data
+(
+  streak_id character varying(20) NOT null,
+  "name" character varying(20) NOT NULL,
+  description character varying(100),
+  achievement_id character varying(20),
+  point_value integer DEFAULT 0,
+  use_notification boolean,
+  notif_message character varying,
+  CONSTRAINT streak_id PRIMARY KEY (streak_id),
+  CONSTRAINT achievement_id FOREIGN KEY (achievement_id)
+    REFERENCES model.achievement_data (achievement_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CHECK (point_value >= 0)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.quest_data OWNER TO configurator;
+
+CREATE TABLE model.streak_action_data
+(
+  streak_id character varying(20) NOT null,
+  action_id character varying(20) NOT NULL,
+  
+  CONSTRAINT streak_action_pkey PRIMARY KEY (streak_id, action_id),
+  CONSTRAINT streak_id FOREIGN KEY (streak_id)
+    REFERENCES model.streak_data (streak_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT action_id FOREIGN KEY (action_id)
+    REFERENCES model.action_data (action_id) ON UPDATE CASCADE ON DELETE CASCADE
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.quest_action_data OWNER TO configurator;
+
+
 CREATE SCHEMA listen AUTHORIZATION configurator;
 GRANT ALL ON SCHEMA listen TO configurator;
 
@@ -153,11 +190,14 @@ ALTER TABLE listen.game_info OWNER TO configurator;
 CREATE TABLE listen.quest_info
 (
   config_id character varying(20) NOT NULL,
+  game_id character varying(20) NOT NULL,
   quest_id character varying(20) NOT NULL,
   listen_to character varying(100),
   CONSTRAINT config_quest_pkey PRIMARY KEY (config_id, quest_id),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT game_id FOREIGN KEY (game_id)
+    REFERENCES model.game_data (game_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT quest_id FOREIGN KEY (quest_id)
     REFERENCES model.quest_data (quest_id) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -169,11 +209,14 @@ ALTER TABLE listen.quest_info OWNER TO configurator;
 CREATE TABLE listen.achievement_info
 (
   config_id character varying(20) NOT NULL,
+  game_id character varying(20) NOT NULL,
   achievement_id character varying(20) NOT NULL,
   listen_to character varying(100),
   CONSTRAINT config_achievement_pkey PRIMARY KEY (config_id, achievement_id),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT game_id FOREIGN KEY (game_id)
+    REFERENCES model.game_data (game_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT achievement_id FOREIGN KEY (achievement_id)
     REFERENCES model.achievement_data (achievement_id) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -185,11 +228,14 @@ ALTER TABLE listen.achievement_info OWNER TO configurator;
 CREATE TABLE listen.badge_info
 (
   config_id character varying(20) NOT NULL,
+  game_id character varying(20) NOT NULL,
   badge_id character varying(20) NOT NULL,
   listen_to character varying(100),
   CONSTRAINT config_badge_pkey PRIMARY KEY (config_id, badge_id),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT game_id FOREIGN KEY (game_id)
+    REFERENCES model.game_data (game_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT badge_id FOREIGN KEY (badge_id)
     REFERENCES model.badge_data (badge_id) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -201,11 +247,14 @@ ALTER TABLE listen.badge_info OWNER TO configurator;
 CREATE TABLE listen.action_info
 (
   config_id character varying(20) NOT NULL,
+  game_id character varying(20) NOT NULL,
   action_id character varying(20) NOT NULL,
   listen_to character varying(100),
   CONSTRAINT config_action_pkey PRIMARY KEY (config_id, action_id),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT game_id FOREIGN KEY (game_id)
+    REFERENCES model.game_data (game_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT action_id FOREIGN KEY (action_id)
     REFERENCES model.action_data (action_id) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -217,11 +266,14 @@ ALTER TABLE listen.action_info OWNER TO configurator;
 CREATE TABLE listen.level_info
 (
   config_id character varying(20) NOT NULL,
+  game_id character varying(20) NOT NULL,
   level_num integer NOT NULL,
   listen_to character varying(100),
   CONSTRAINT config_level_pkey PRIMARY KEY (config_id, level_num),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT game_id FOREIGN KEY (game_id)
+    REFERENCES model.game_data (game_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT level_num FOREIGN KEY (level_num)
     REFERENCES model.level_data (level_num) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -229,4 +281,23 @@ WITH (
   OIDS=FALSE
 );
 ALTER TABLE listen.level_info OWNER TO configurator;
+
+CREATE TABLE listen.streak_info
+(
+  config_id character varying(20) NOT NULL,
+  game_id character varying(20) NOT NULL,
+  streak_id character varying(20) NOT NULL,
+  listen_to character varying(100),
+  CONSTRAINT config_streak_pkey PRIMARY KEY (config_id, streak_id),
+  CONSTRAINT config_id FOREIGN KEY (config_id)
+    REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT game_id FOREIGN KEY (game_id)
+    REFERENCES model.game_data (game_id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT streak_id FOREIGN KEY (streak_id)
+    REFERENCES model.streak_data (streak_id) ON UPDATE CASCADE ON DELETE CASCADE
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE listen.game_info OWNER TO configurator;
 

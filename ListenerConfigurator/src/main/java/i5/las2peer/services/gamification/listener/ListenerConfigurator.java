@@ -52,7 +52,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 
@@ -500,7 +499,7 @@ public class ListenerConfigurator extends RESTService {
 
 				try {
 					configAccess.createGame(conn,gameModel);
-					configAccess.addElementToMapping(conn, configId, gameModel.getGameId(), listenTo, "game");
+					configAccess.addElementToMapping(conn, configId, "", gameModel.getGameId(), listenTo, "game");
 					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -829,12 +828,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a quest for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
+	 * @param gameId Game ID to register quest on
 	 * @param listenTo String the Listener should listen to
 	 * @param questModel Quest in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/quest/{configId}/{listenTo}")
+	@Path("/quest/{configId}/{gameId}/{listenTo}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created quest successfully"),
@@ -843,6 +843,7 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerQuest", notes = "Create and register a quest to a configuration")
 	public Response registerQuest(
 			@PathParam("configId") String configId,
+			@PathParam("gameId") String gameId,
 			@PathParam("listenTo") String listenTo,
 			@ApiParam(value = "Quest detail in JSON", required = true) QuestModel questModel) {
 
@@ -870,8 +871,26 @@ public class ListenerConfigurator extends RESTService {
 							.build();
 				}
 				try {
+					if (!configAccess.isGameIdExist(conn, gameId)) {
+						objResponse.put("message", "Cannot register quest. Game not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register quest. Cannot check whether game ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				try {
 					configAccess.createQuest(conn, questModel);
-					configAccess.addElementToMapping(conn, configId, questModel.getQuestId(), listenTo, "quest");
+					configAccess.addElementToMapping(conn, configId, gameId, questModel.getQuestId(), listenTo, "quest");
 					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -1204,12 +1223,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a achievement for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
+	 * @param gameId Game ID to register achievement on
 	 * @param listenTo String the Listener should listen to
 	 * @param achievementModel Achievement in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/achievement/{configId}/{listenTo}")
+	@Path("/achievement/{configId}/{gameId}/{listenTo}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = {
@@ -1219,6 +1239,7 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerAchievement", notes = "Create and register an achievement to a configuration")
 	public Response registerAchievement(
 			@PathParam("configId") String configId,
+			@PathParam("gameId") String gameId,
 			@PathParam("listenTo") String listenTo,
 			@ApiParam(value = "Achievement detail in JSON", required = true) AchievementModel achievementModel) {
 
@@ -1246,8 +1267,26 @@ public class ListenerConfigurator extends RESTService {
 							.build();
 				}
 				try {
+					if (!configAccess.isGameIdExist(conn, gameId)) {
+						objResponse.put("message", "Cannot register achievement. Game not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register quest. Cannot check whether game ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				try {
 					configAccess.createAchhievement(conn, achievementModel);
-					configAccess.addElementToMapping(conn, configId, achievementModel.getAchievementId(), listenTo, "achievement");
+					configAccess.addElementToMapping(conn, configId, gameId, achievementModel.getAchievementId(), listenTo, "achievement");
 					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -1579,12 +1618,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a badge for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
+	 * @param gameId Game ID to register badge on
 	 * @param listenTo String the Listener should listen to
 	 * @param badgeModel Badge in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/badge/{configId}/{listenTo}")
+	@Path("/badge/{configId}/{gameId}/{listenTo}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created badge successfully"),
@@ -1593,6 +1633,7 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerBadge", notes = "Create and register a badge to a configuration")
 	public Response registerBadge(
 			@PathParam("configId") String configId,
+			@PathParam("gameId") String gameId,
 			@PathParam("listenTo") String listenTo,
 			@ApiParam(value = "Badge detail in JSON", required = true) BadgeModel badgeModel) {
 
@@ -1620,8 +1661,26 @@ public class ListenerConfigurator extends RESTService {
 							.build();
 				}
 				try {
+					if (!configAccess.isGameIdExist(conn, gameId)) {
+						objResponse.put("message", "Cannot register badge. Game not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register quest. Cannot check whether game ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				try {
 					configAccess.createBadge(conn, badgeModel);
-					configAccess.addElementToMapping(conn,configId,badgeModel.getBadgeId(), listenTo, "badge");
+					configAccess.addElementToMapping(conn,configId, gameId, badgeModel.getBadgeId(), listenTo, "badge");
 					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -1948,12 +2007,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a action for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
+	 * @param gameId Game ID to register action on
 	 * @param listenTo String the Listener should listen to
 	 * @param actionModel Action in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/action/{configId}/{listenTo}")
+	@Path("/action/{configId}/{gameId}/{listenTo}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created action successfully"),
@@ -1962,6 +2022,7 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerAction", notes = "Create and register an action to a configuration")
 	public Response registerAction(
 			@PathParam("configId") String configId,
+			@PathParam("gameId") String gameId,
 			@PathParam("listenTo") String listenTo,
 			@ApiParam(value = "Action detail in JSON", required = true) ActionModel actionModel) {
 
@@ -1989,8 +2050,26 @@ public class ListenerConfigurator extends RESTService {
 							.build();
 				}
 				try {
+					if (!configAccess.isGameIdExist(conn, gameId)) {
+						objResponse.put("message", "Cannot register action. Game not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register quest. Cannot check whether game ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				try {
 					configAccess.createAction(conn, actionModel);
-					configAccess.addElementToMapping(conn, configId, actionModel.getActionId(), listenTo, "action");
+					configAccess.addElementToMapping(conn, configId, gameId, actionModel.getActionId(), listenTo, "action");
 					notifyObservers(configId);
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -2317,12 +2396,13 @@ public class ListenerConfigurator extends RESTService {
 	 * Register a level for a given configuration
 	 * 
 	 * @param configId Config ID obtained from LMS
+	 * @param gameId Game ID to register level on
 	 * @param listenTo String the Listener should listen to
 	 * @param levelModel Level in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
-	@Path("/level/{configId}/{listenTo}")
+	@Path("/level/{configId}/{gameId}/{listenTo}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created level successfully"),
@@ -2331,6 +2411,7 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "registerLevel", notes = "Create and register a level to a configuration")
 	public Response registerLevel(
 			@PathParam("configId") String configId,
+			@PathParam("gameId") String gameId,
 			@PathParam("listenTo") String listenTo,
 			@ApiParam(value = "Level detail in JSON", required = true) LevelModel levelModel) {
 
@@ -2358,9 +2439,27 @@ public class ListenerConfigurator extends RESTService {
 							.build();
 				}
 				try {
+					if (!configAccess.isGameIdExist(conn, gameId)) {
+						objResponse.put("message", "Cannot register level. Game not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register quest. Cannot check whether game ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				try {
 					configAccess.createLevel(conn, levelModel);
 					Integer levelId = levelModel.getLevelNumber();
-					configAccess.addElementToMapping(conn, configId, levelId.toString(), listenTo, "level");
+					configAccess.addElementToMapping(conn, configId, gameId, levelId.toString(), listenTo, "level");
 					notifyObservers(configId);
 					
 				} catch (SQLException e) {
@@ -2683,6 +2782,398 @@ public class ListenerConfigurator extends RESTService {
 			}
 		}
 	}
+	
+	/**
+	 * Register a streak for a given configuration
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @param gameId Game ID to register quest on
+	 * @param listenTo String the Listener should listen to
+	 * @param streakModel Streak in JSON
+	 * @return HTTP Response returned as JSON object
+	 */
+	@POST
+	@Path("/streak/{configId}/{gameId}/{listenTo}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Created streak successfully"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "registerStreak", notes = "Create and register a streak to a configuration")
+	public Response registerStreak(
+			@PathParam("configId") String configId,
+			@PathParam("gameId") String gameId,
+			@PathParam("listenTo") String listenTo,
+			@ApiParam(value = "Streak detail in JSON", required = true) StreakModel streakModel) {
+
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"POST " + "gamification/configurator/streak/" + configId + "/" + listenTo, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				if (!configAccess.isConfigIdExist(conn, configId)) {
+					objResponse.put("message", "Cannot register streak. Configuration not found");
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
+				}
+				try {
+					if (!configAccess.isGameIdExist(conn, gameId)) {
+						objResponse.put("message", "Cannot register streak. Game not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register streak. Cannot check whether game ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				try {
+					configAccess.createStreak(conn, streakModel);
+					configAccess.addElementToMapping(conn, configId, gameId, streakModel.getStreakId(), listenTo, "quest");
+					notifyObservers(configId);
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot register and create streak. Failed to upload " + streakModel.getStreakId() + ". " + e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
+				}
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "" + randomLong, true);
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_24, "" + name, true);
+				return Response.status(HttpURLConnection.HTTP_CREATED).entity(objResponse.toString()).build();
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+				objResponse.put("message",
+						"Cannot register streak. Cannot check whether streak ID exist or not. Database error. "
+								+ e1.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot register streak. Failed to get connection. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.type(MediaType.APPLICATION_JSON).build();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				logger.printStackTrace(e);
+			}
+		}
+	}
+
+	/**
+	 * Get a registered streak for a given configuration
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @param streakId streak to be worked on
+	 * @return HTTP Response returned as JSON object
+	 */
+	@GET
+	@Path("/streak/{configId}/{streakId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Retrieved streak successfully"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "getStreak", notes = "Get a streak")
+	public Response getStreak(
+			@PathParam("configId") String configId,
+			@PathParam("questId") String streakId) {
+
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"GET " + "gamification/configurator/streak/" + configId + "/" + streakId, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				try {
+					if (!configAccess.isConfigIdExist(conn, configId)) {
+						objResponse.put("message", "Cannot get streak. Configuration not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot get streak. Cannot check whether streak ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				if (!configAccess.isStreakIdExist(conn, streakId)) {
+					objResponse.put("message", "Cannot get streak. Streak not found");
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
+				}
+				StreakModel streak = configAccess.getStreakWithId(conn, streakId);
+				if(streak == null){
+					objResponse.put("message", "Streak Null, Cannot find streak with " + streakId);
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
+				}
+				ObjectMapper mapper = new ObjectMapper();
+				mapper.enable(SerializationFeature.INDENT_OUTPUT);
+				String streakString = mapper.writeValueAsString(streak);
+				//
+				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
+		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
+		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, ""+streakId, true);
+				return Response.status(HttpURLConnection.HTTP_OK).entity(streakString).type(MediaType.APPLICATION_JSON).build();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				objResponse.put("message",
+						"Cannot get streak. Cannot check whether streak ID exist or not. Database error. "
+								+ e.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+				objResponse.put("message", "Cannot get streak detail. JSON processing error. " + e.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(e.getMessage())
+						.build();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot get streak. Failed to get connection. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.build();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				logger.printStackTrace(e);
+			}
+		}
+	}
+
+	/**
+	 * Update a registered streak for a given configuration
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @param streakId  to be worked on
+	 * @param streakModel Streak in JSON
+	 * @return HTTP Response returned as JSON object
+	 */
+	@PUT
+	@Path("/streak/{configId}/{streakId}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Updated streak successfully"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "updateStreak", notes = "Update a streak")
+	public Response updateStreak(
+			@PathParam("configId") String configId,
+			@PathParam("streakId") String streakId,
+			@ApiParam(value = "Streak detail in JSON", required = true) StreakModel streakModel) {
+
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"PUT " + "gamification/configurator/streak/" + configId + "/" + streakId, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				try {
+					if (!configAccess.isConfigIdExist(conn, configId)) {
+						objResponse.put("message", "Cannot update streak. Configuration not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot update streak. Cannot check whether streak ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				if (!configAccess.isStreakIdExist(conn, streakId)) {
+					objResponse.put("message", "Cannot update streak. Streak not found");
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
+				}
+				configAccess.updateStreak(conn, streakModel);
+				objResponse.put("message", "Streak updated");
+				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
+		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
+		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, ""+streakId, true);
+				return Response.status(HttpURLConnection.HTTP_OK).entity(objResponse).build();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				objResponse.put("message",
+						"Cannot update streak. Cannot check whether streak ID exist or not. Database error. "
+								+ e.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot update streak. Failed to get connection. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.build();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				logger.printStackTrace(e);
+			}
+		}
+	}
+
+	/**
+	 * Delete a registered streak for a given configuration
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @param streakId  to be worked on
+	 * @return HTTP Response returned as JSON object
+	 */
+	@DELETE
+	@Path("/streak/{configId}/{streakId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Deleted streak successfully"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "deleteStreak", notes = "Delete and unregister a streak from a configuration")
+	public Response deleteStreak(@PathParam("configId") String configId, @PathParam("streakId") String streakId) {
+
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"DELETE " + "gamification/configurator/streak/" + configId + "/" + streakId, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				try {
+					if (!configAccess.isConfigIdExist(conn, configId)) {
+						objResponse.put("message", "Cannot delete streak. Configuration not found");
+						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+								(String) objResponse.get("message"));
+						return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+								.build();
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+					objResponse.put("message",
+							"Cannot delete streak. Cannot check whether streak ID exist or not. Database error. "
+									+ e.getMessage());
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+							.build();
+				}
+				if (!configAccess.isStreakIdExist(conn, streakId)) {
+					objResponse.put("message", "Cannot delete streak. Streak not found");
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
+				}
+				configAccess.deleteStreak(conn, streakId);
+				configAccess.removeElementFromMapping(conn, configId, streakId, "streak");
+				notifyObservers(configId);
+				objResponse.put("message", "Streak deleted");
+				Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, ""+randomLong, true);
+		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, ""+name, true);
+		    	Context.getCurrent().monitorEvent(this,MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, ""+streakId, true);
+				return Response.status(HttpURLConnection.HTTP_OK).entity(objResponse).build();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				objResponse.put("message",
+						"Cannot delete streak. Cannot check whether streak ID exist or not. Database error. "
+								+ e.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot delete streak. Failed to get connection. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.build();
+		} finally {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				logger.printStackTrace(e);
+			}
+		}
+	}
+
 
 	/**
 	 * Acquire a Mapping to Listen to mapping changes
@@ -2732,16 +3223,27 @@ public class ListenerConfigurator extends RESTService {
 				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
 						.build();
 			}
-			JSONArray mapping = configAccess.getMapping(conn, configId);
+			
+			Mapping mapping = configAccess.getMapping(conn, configId);
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.enable(SerializationFeature.INDENT_OUTPUT);
+			String mappingString = mapper.writeValueAsString(mapping);
+			
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
-			return Response.status(HttpURLConnection.HTTP_OK).entity(mapping.toString()).build();
+			return Response.status(HttpURLConnection.HTTP_OK).entity(mappingString).build();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			objResponse.put("message", "Cannot get mapping. Failed to get connection. " + e.getMessage());
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
 			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.build();
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot get mapping detail. JSON processing error. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(e.getMessage())
 					.build();
 		}finally {
 			try {
@@ -2845,16 +3347,28 @@ public class ListenerConfigurator extends RESTService {
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
 					connection.setRequestProperty("Content-Type", "application/json; utf-8");
-					String jsonInputString = "{\"changedmapping\":\"true\"";
-					try (OutputStream os = connection.getOutputStream()) {
-						byte[] input = jsonInputString.getBytes("utf-8");
-						os.write(input, 0, input.length);
+					try {
+						Connection conn = dbm.getConnection();
+						Mapping mapping = configAccess.getMapping(conn, configId);
+						
+						ObjectMapper mapper = new ObjectMapper();
+						mapper.enable(SerializationFeature.INDENT_OUTPUT);
+						String mappingString = mapper.writeValueAsString(mapping);
+						try (OutputStream os = connection.getOutputStream()) {
+							byte[] input = mappingString.getBytes("utf-8");
+							os.write(input, 0, input.length);
+						}
+						catch (IOException e){
+							e.printStackTrace();
+							Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+									"Failed to notify observers with changed mapping " + e.getMessage());
+						}
 					}
-					catch (IOException e){
-						e.printStackTrace();
+					catch (SQLException e) {
 						Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
-								"Failed to notify observers of mapping changes" + e.getMessage());
+								"Failed to retrieve mapping " + e.getMessage());
 					}
+					
 					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_25,
 							"Notified observer" + url + "with status" + connection.getResponseCode());
 				}catch (Exception e) {

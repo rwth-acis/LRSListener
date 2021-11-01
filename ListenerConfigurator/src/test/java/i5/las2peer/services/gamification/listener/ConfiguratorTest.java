@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.HttpURLConnection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,8 +62,9 @@ public class ConfiguratorTest {
 	private static String questId = "testQuest";
 	private static String achievementId = "testAchievement";
 	private static String badgeId = "testBadge";
-	private static String actionId = "testAction";
+	private static String actionId = "testAction1";
 	private static int levelNumber = 1;
+	private static String streakId = "testString";
 	private static final String mainPath = "gamification/configurator";
 	private static Map<String, String> headers;
 	private static ConfigModel config;
@@ -72,6 +74,7 @@ public class ConfiguratorTest {
 	private static BadgeModel badge;
 	private static QuestModel quest;
 	private static LevelModel level;
+	private static StreakModel streak;
 	//private static List<Pair<String,Integer>> actionList;
 	
 	// to fetch data per batch
@@ -178,11 +181,15 @@ public class ConfiguratorTest {
 		quest.setQuestIdCompleted(questId);
 		quest.setStatus(QuestStatus.REVEALED);
 		quest.setAchievementId(achievementId);
-		//Pair<String, Integer> pair = new Pair<>(actionId,0);
-		//actionList.add(pair);
-		//quest.setActionIds(actionList);
+		List<String> actionList = new ArrayList<>();
+		actionList.add("testAction1");
+		actionList.add("testAction2");
+		actionList.add("testAction3");
+		quest.setActionIds(actionList);
 		quest.setUseNotification(true);
 		quest.setNotificationMessage("This is some test message");
+		
+		streak = new StreakModel();
 		
 		headers = new HashMap<>();
 		headers.put("Accept-Encoding","gzip, deflate");
@@ -261,9 +268,20 @@ public class ConfiguratorTest {
 		try
 		{
 			JSONObject jsonObject = new JSONObject(action);
-
-			ClientResponse result = c1.sendRequest("POST", mainPath + "/action/"+ configId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			ClientResponse result = c1.sendRequest("POST", mainPath + "/action/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
+			
+			
+			action.setActionId("testAction2");
+			jsonObject = new JSONObject(action);
+			result = c1.sendRequest("POST", mainPath + "/action/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			System.out.println(result.getResponse());
+			
+			action.setActionId("testAction3");
+			jsonObject = new JSONObject(action);
+			result = c1.sendRequest("POST", mainPath + "/action/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			System.out.println(result.getResponse());
+			
 			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
 				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
 			}
@@ -284,7 +302,7 @@ public class ConfiguratorTest {
 		{
 			JSONObject jsonObject = new JSONObject(badge);
 
-			ClientResponse result = c1.sendRequest("POST", mainPath + "/badge/"+ configId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			ClientResponse result = c1.sendRequest("POST", mainPath + "/badge/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
 			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
 				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
@@ -306,7 +324,7 @@ public class ConfiguratorTest {
 		{
 			JSONObject jsonObject = new JSONObject(achievement);
 
-			ClientResponse result = c1.sendRequest("POST", mainPath + "/achievement/"+ configId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			ClientResponse result = c1.sendRequest("POST", mainPath + "/achievement/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
 			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
 				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
@@ -328,7 +346,7 @@ public class ConfiguratorTest {
 		{
 			JSONObject jsonObject = new JSONObject(level);
 
-			ClientResponse result = c1.sendRequest("POST", mainPath + "/level/"+ configId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			ClientResponse result = c1.sendRequest("POST", mainPath + "/level/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
 			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
 				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
@@ -350,7 +368,29 @@ public class ConfiguratorTest {
 		{
 			JSONObject jsonObject = new JSONObject(quest);
 
-			ClientResponse result = c1.sendRequest("POST", mainPath + "/quest/"+ configId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			ClientResponse result = c1.sendRequest("POST", mainPath + "/quest/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
+			System.out.println(result.getResponse());
+			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
+				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
+			}
+			else{
+				assertEquals(HttpURLConnection.HTTP_CREATED,result.getHttpCode());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception: " + e);
+			System.exit(0);
+		}
+	}
+	
+	
+	public void testA8_createNewStreak(){
+		System.out.println("Test --- Create New Streak");
+		try
+		{
+			JSONObject jsonObject = new JSONObject(streak);
+
+			ClientResponse result = c1.sendRequest("POST", mainPath + "/streak/"+ configId + "/" + gameId + "/" + "listenTo", jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
 			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
 				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
@@ -484,6 +524,23 @@ public class ConfiguratorTest {
 		}
 	}
 	
+	
+	public void testB8_getStreakWithId(){
+
+		System.out.println("Test --- Get Streak With Id");
+		try
+		{
+			ClientResponse result = c1.sendRequest("GET",  mainPath + "/streak/" +configId +"/"+ streakId, "");
+			System.out.println(result.getResponse());
+	        assertEquals(HttpURLConnection.HTTP_OK, result.getHttpCode());
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+			fail("Exception: " + e);
+			System.exit(0);
+		}
+	}
+	
 	@Test
 	public void testC1_getConfigurationMapping(){
 
@@ -606,6 +663,27 @@ public class ConfiguratorTest {
 		}
 	}
 	
+	
+	public void testD6_updateStreak() {
+		try
+		{
+			streak.setName("UpdatedName");
+			JSONObject jsonObject = new JSONObject(streak);
+			ClientResponse result = c1.sendRequest("PUT", mainPath + "/streak/" +configId + "/"+ streakId, jsonObject.toString() ,"application/json", "*/*", headers);
+	
+			System.out.println(result.getResponse());
+			assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
+			
+	} catch (Exception e)
+		{
+		e.printStackTrace();
+		System.out.println(e.getMessage());
+		
+		fail("Exception: " + e);
+		System.exit(0);
+		}
+	}
+	
 	@Test
 	public void testE1_deleteGame(){
 		System.out.println("Test --- Delete Game");
@@ -636,8 +714,23 @@ public class ConfiguratorTest {
 		}
 	}
 	
+	
+	public void testE3_deleteStreak(){
+		System.out.println("Test --- Delete Streak");
+		try
+		{
+			ClientResponse result = c1.sendRequest("DELETE",  mainPath + "/streak/" +configId + "/"+ streakId, "");
+	        assertEquals(HttpURLConnection.HTTP_OK, result.getHttpCode());
+		} catch (Exception e)
+		{
+			e.printStackTrace();
+			fail("Exception: " + e);
+			System.exit(0);
+		}
+	}
+	
 	@Test
-	public void testE3_deleteLevel(){
+	public void testE4_deleteLevel(){
 		System.out.println("Test --- Delete Level");
 		try
 		{
@@ -652,7 +745,7 @@ public class ConfiguratorTest {
 	}
 	
 	@Test
-	public void testE4_deleteAchievement(){
+	public void testE5_deleteAchievement(){
 		System.out.println("Test --- Delete Achievement");
 		try
 		{
@@ -667,7 +760,7 @@ public class ConfiguratorTest {
 	}
 	
 	@Test
-	public void testE5_deleteBadge(){
+	public void testE6_deleteBadge(){
 		System.out.println("Test --- Delete Badge");
 		try
 		{
@@ -682,11 +775,13 @@ public class ConfiguratorTest {
 	}
 	
 	@Test
-	public void testE6_deleteAction(){
+	public void testE7_deleteAction(){
 		System.out.println("Test --- Delete Action");
 		try
 		{
-			ClientResponse result = c1.sendRequest("DELETE",  mainPath + "/action/" +configId + "/"+ actionId, "");
+			ClientResponse result = c1.sendRequest("DELETE",  mainPath + "/action/" +configId + "/"+ "testAction1", "");
+			result = c1.sendRequest("DELETE",  mainPath + "/action/" +configId + "/"+ "testAction2", "");
+			result = c1.sendRequest("DELETE",  mainPath + "/action/" +configId + "/"+ "testAction3", "");
 	        assertEquals(HttpURLConnection.HTTP_OK, result.getHttpCode());
 		} catch (Exception e)
 		{
@@ -696,25 +791,9 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
-	public void testF1_getConfigurationMapping(){
-
-		System.out.println("Test --- Get Mapping With configId");
-		try
-		{
-			ClientResponse result = c1.sendRequest("GET",  mainPath + "/mapping/" +configId , "");
-			System.out.println(result.getResponse());
-	        assertEquals(HttpURLConnection.HTTP_OK, result.getHttpCode());
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-			fail("Exception: " + e);
-			System.exit(0);
-		}
-	}
 	
 	@Test
-	public void testG1_deleteConfiguration(){
+	public void testE8_deleteConfiguration(){
 		System.out.println("Test --- Delete Configuration");
 		try
 		{

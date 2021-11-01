@@ -6,13 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Pattern;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class ConfigDAO {
 
@@ -26,44 +20,6 @@ public class ConfigDAO {
 			return true;
 		}
 		return false;
-	}
-
-	public void createConfig(Connection conn, ConfigModel config) throws SQLException {
-		stmt = conn.prepareStatement("INSERT INTO model.config_data (config_id, name, description) VALUES (?, ?, ?)");
-		stmt.setString(1, config.getConfigId());
-		stmt.setString(2, config.getName());
-		stmt.setString(3, config.getDescription());
-		stmt.executeUpdate();
-	}
-
-	public ConfigModel getConfigModelWithId(Connection conn, String configId) throws SQLException {
-		stmt = conn.prepareStatement("SELECT * FROM model.config_data WHERE config_id = ?");
-		stmt.setString(1, configId);
-		ResultSet rs = stmt.executeQuery();
-		if (rs.next()) {
-			ConfigModel config = new ConfigModel();
-			config.setConfigId(configId);
-			config.setName(rs.getString("name"));
-			config.setDescription(rs.getString("description"));
-			return config;
-		}
-		return null;
-	}
-
-	public void updateConfig(Connection conn, ConfigModel config) throws SQLException {
-		stmt = conn.prepareStatement("UPDATE model.config_data SET config_id =?, name = ?, description = ?");
-		stmt.setString(1, config.getConfigId());
-		stmt.setString(2, config.getName());
-		stmt.setString(3, config.getDescription());
-		stmt.executeUpdate();
-
-	}
-
-	public void deleteConfig(Connection conn, String configId) throws SQLException {
-		stmt = conn.prepareStatement("DELETE FROM model.config_data WHERE config_id = ?");
-		stmt.setString(1, configId);
-		stmt.executeUpdate();
-
 	}
 
 	public boolean isGameIdExist(Connection conn, String gameId) throws SQLException {
@@ -126,6 +82,19 @@ public class ConfigDAO {
 		}
 		return false;
 	}
+	
+	public boolean isStreakIdExist(Connection conn, String streakId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	public void createConfig(Connection conn, ConfigModel config) throws SQLException {
+		stmt = conn.prepareStatement("INSERT INTO model.config_data (config_id, name, description) VALUES (?, ?, ?)");
+		stmt.setString(1, config.getConfigId());
+		stmt.setString(2, config.getName());
+		stmt.setString(3, config.getDescription());
+		stmt.executeUpdate();
+	}
 
 	public void createGame(Connection conn, GameModel game) throws SQLException {
 		stmt = conn
@@ -154,10 +123,11 @@ public class ConfigDAO {
 		stmt.setString(11, quest.getNotificationMessage());
 		stmt.executeUpdate();
 		if (quest.getActionIds() != null) {
-			for (Pair<String, Integer> entry : quest.getActionIds()) {
+			for (String entry : quest.getActionIds()) {
 				stmt = conn.prepareStatement("Insert INTO model.quest_action_data (quest_id, action_id) VALUES (?,?)");
 				stmt.setString(1, quest.getQuestId());
-				stmt.setString(2, entry.getLeft());
+				stmt.setString(2, entry);
+				stmt.executeUpdate();
 			}
 		}
 	}
@@ -209,6 +179,25 @@ public class ConfigDAO {
 		stmt.setString(5, level.getNotificationMessage());
 		stmt.executeUpdate();
 	}
+	
+	public void createStreak(Connection conn, StreakModel streakModel) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public ConfigModel getConfigModelWithId(Connection conn, String configId) throws SQLException {
+		stmt = conn.prepareStatement("SELECT * FROM model.config_data WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		if (rs.next()) {
+			ConfigModel config = new ConfigModel();
+			config.setConfigId(configId);
+			config.setName(rs.getString("name"));
+			config.setDescription(rs.getString("description"));
+			return config;
+		}
+		return null;
+	}
 
 	public GameModel getGameWithId(Connection conn, String gameId) {
 		try {
@@ -246,20 +235,18 @@ public class ConfigDAO {
 			quest.setPointValue(rs.getInt("point_value"));
 			quest.setUseNotification(rs.getBoolean("use_notification"));
 			quest.setNotificationMessage(rs.getString("notif_message"));
-			
-			
-			List<Pair<String, Integer>> action_ids = new ArrayList<Pair<String, Integer>>();
+
+			List<String> actionList = new ArrayList<>();
 			stmt = conn.prepareStatement("SELECT action_id FROM model.quest_action_data WHERE quest_id=?");
 			stmt.setString(1, quest.getQuestId());
 			ResultSet rs2 = stmt.executeQuery();
 			while (rs2.next()) {
-				if(rs2.getString("action_id") != "") {
-					action_ids.add(Pair.of(rs2.getString("action_id"), 0));
+				if (rs2.getString("action_id") != "") {
+					actionList.add(rs2.getString("action_id"));
 				}
 			}
-			if(!action_ids.isEmpty()) {
-				quest.setActionIds(action_ids);
-				action_ids.clear();
+			if (!actionList.isEmpty()) {
+				quest.setActionIds(actionList);
 			}
 			return quest;
 		}
@@ -333,6 +320,11 @@ public class ConfigDAO {
 		}
 		return null;
 	}
+	
+	public StreakModel getStreakWithId(Connection conn, String streakId) throws SQLException{
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	public void updateGame(Connection conn, GameModel game) throws SQLException {
 		stmt = conn
@@ -343,6 +335,15 @@ public class ConfigDAO {
 		stmt.executeUpdate();
 	}
 
+	public void updateConfig(Connection conn, ConfigModel config) throws SQLException {
+		stmt = conn.prepareStatement("UPDATE model.config_data SET config_id =?, name = ?, description = ?");
+		stmt.setString(1, config.getConfigId());
+		stmt.setString(2, config.getName());
+		stmt.setString(3, config.getDescription());
+		stmt.executeUpdate();
+
+	}
+	
 	public void updateQuest(Connection conn, QuestModel quest) throws SQLException {
 		stmt = conn.prepareStatement(
 				"UPDATE model.quest_data SET name = ?, description = ?, status = ?, achievement_id = ?, quest_flag = ?, quest_id_completed = ?, point_flag = ?, point_value = ?, use_notification = ?, notif_message = ? WHERE quest_id = ?");
@@ -360,20 +361,18 @@ public class ConfigDAO {
 		stmt.setString(10, quest.getNotificationMessage());
 		stmt.setString(11, quest.getQuestId());
 		stmt.executeUpdate();
-		
+
 		stmt = conn.prepareStatement("DELETE FROM model.quest_action_data WHERE quest_id=?");
 		stmt.setString(1, quest.getQuestId());
 		stmt.executeUpdate();
-
-		if(quest.getActionIds() != null) {
-			PreparedStatement batchstmt = null;
-			
-			for(Pair<String,Integer> a : quest.getActionIds()){
-
-				batchstmt = conn.prepareStatement("INSERT INTO model.quest_action_data (quest_id, action_id) VALUES ( ?, ?)");
-				batchstmt.setString(1, quest.getQuestId());
-				batchstmt.setString(2, a.getLeft());
-				batchstmt.executeUpdate();
+		
+		if (quest.getActionIds() != null) {
+			for (String entry : quest.getActionIds()) {
+				stmt = conn
+				.prepareStatement("INSERT INTO model.quest_action_data (quest_id, action_id) VALUES ( ?, ?)");
+				stmt.setString(1, quest.getQuestId());
+				stmt.setString(2, entry);
+				stmt.executeUpdate();
 			}
 		}
 	}
@@ -424,19 +423,29 @@ public class ConfigDAO {
 		stmt.setInt(5, level.getLevelNumber());
 		stmt.executeUpdate();
 	}
+	
+	public void updateStreak(Connection conn, StreakModel streakModel) throws SQLException{
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void deleteConfig(Connection conn, String configId) throws SQLException {
+		stmt = conn.prepareStatement("DELETE FROM model.config_data WHERE config_id = ?");
+		stmt.setString(1, configId);
+		stmt.executeUpdate();
+	}
 
 	public void deleteGame(Connection conn, String gameId) throws SQLException {
 		stmt = conn.prepareStatement("DELETE FROM model.game_data WHERE game_id = ?");
 		stmt.setString(1, gameId);
 		stmt.executeUpdate();
-
 	}
 
 	public void deleteQuest(Connection conn, String questId) throws SQLException {
 		stmt = conn.prepareStatement("DELETE FROM model.quest_data WHERE quest_id = ?");
 		stmt.setString(1, questId);
 		stmt.executeUpdate();
-		
+
 		stmt = conn.prepareStatement("DELETE FROM model.quest_action_data WHERE quest_id = ?");
 		stmt.setString(1, questId);
 		stmt.executeUpdate();
@@ -466,57 +475,67 @@ public class ConfigDAO {
 		stmt.setInt(1, levelNumber);
 		stmt.executeUpdate();
 	}
+	
+	public void deleteStreak(Connection conn, String streakId) throws SQLException{
+		// TODO Auto-generated method stub
+		
+	}
 
-	public void addElementToMapping(Connection conn, String configId, String elementId, String listenTo, String type)
-			throws SQLException {
-		if (type.equals("level")) {
-			stmt = conn.prepareStatement(
-					"INSERT INTO listen.level_info (config_id, level_num, listen_to) VALUES (?, ?, ?)");
-			int levelNumber = Integer.parseInt(elementId);
-			stmt.setString(1, configId);
-			stmt.setInt(2, levelNumber);
-			stmt.setString(3, listenTo);
-			stmt.executeUpdate();
-		}
-		else {
-			switch (type) {
-			case "game": {
-				stmt = conn
-						.prepareStatement("INSERT INTO listen.game_info (config_id, game_id, listen_to) VALUES (?, ?, ?)");
-				break;
-			}
-			case "quest": {
-				stmt = conn.prepareStatement(
-						"INSERT INTO listen.quest_info (config_id, quest_id, listen_to) VALUES (?, ?, ?)");
-				break;
-			}
-			case "achievement": {
-				stmt = conn.prepareStatement(
-						"INSERT INTO listen.achievement_info (config_id, achievement_id, listen_to) VALUES (?, ?, ?)");
-				break;
-			}
-			case "badge": {
-				stmt = conn.prepareStatement(
-						"INSERT INTO listen.badge_info (config_id, badge_id, listen_to) VALUES (?, ?, ?)");
-				break;
-			}
-			case "action": {
-				stmt = conn.prepareStatement(
-						"INSERT INTO listen.action_info (config_id, action_id, listen_to) VALUES (?, ?, ?)");
-				break;
-			}
-			
-			default:
-				throw new IllegalArgumentException("Unexpected value: " + type);
-			}
+	public void addElementToMapping(Connection conn, String configId, String gameId, String elementId, String listenTo,
+			String type) throws SQLException {
+		if (type.equals("game")) {
+			stmt = conn
+					.prepareStatement("INSERT INTO listen.game_info (config_id, game_id, listen_to) VALUES (?, ?, ?)");
 			stmt.setString(1, configId);
 			stmt.setString(2, elementId);
 			stmt.setString(3, listenTo);
 			stmt.executeUpdate();
+		} else if (type.equals("level")) {
+			stmt = conn.prepareStatement(
+					"INSERT INTO listen.level_info (config_id, game_id, level_num, listen_to) VALUES (?, ?, ?, ?)");
+			int levelNumber = Integer.parseInt(elementId);
+			stmt.setString(1, configId);
+			stmt.setString(2, gameId);
+			stmt.setInt(3, levelNumber);
+			stmt.setString(4, listenTo);
+			stmt.executeUpdate();
+		} else {
+			switch (type) {
+			case "quest": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.quest_info (config_id, game_id, quest_id, listen_to) VALUES (?, ?, ?, ?)");
+				break;
+			}
+			case "achievement": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.achievement_info (config_id, game_id, achievement_id, listen_to) VALUES (?, ?, ?, ?)");
+				break;
+			}
+			case "badge": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.badge_info (config_id, game_id, badge_id, listen_to) VALUES (?, ?, ?, ?)");
+				break;
+			}
+			case "action": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.action_info (config_id, game_id, action_id, listen_to) VALUES (?, ?, ?, ?)");
+				break;
+			}
+			case "streak": {
+				stmt = conn.prepareStatement(
+						"INSERT INTO listen.streak_info (config_id, game_id, streak_id, listen_to) VALUES (?, ?, ?, ?)");
+				break;
+			}
+			default:
+				throw new IllegalArgumentException("Unexpected value: " + type);
+			}
+			stmt.setString(1, configId);
+			stmt.setString(2, gameId);
+			stmt.setString(3, elementId);
+			stmt.setString(4, listenTo);
+			stmt.executeUpdate();
 		}
 	}
-
-		
 
 	public void removeElementFromMapping(Connection conn, String configId, String elementId, String type)
 			throws SQLException {
@@ -526,8 +545,7 @@ public class ConfigDAO {
 			stmt.setString(1, configId);
 			stmt.setInt(2, levelNumber);
 			stmt.executeUpdate();
-		}
-		else {
+		} else {
 			switch (type) {
 			case "game": {
 				stmt = conn.prepareStatement("DELETE FROM listen.game_info WHERE config_id = ? AND game_id = ?");
@@ -538,8 +556,8 @@ public class ConfigDAO {
 				break;
 			}
 			case "achievement": {
-				stmt = conn
-						.prepareStatement("DELETE FROM listen.achievement_info WHERE config_id = ? AND achievement_id = ?");
+				stmt = conn.prepareStatement(
+						"DELETE FROM listen.achievement_info WHERE config_id = ? AND achievement_id = ?");
 				break;
 			}
 			case "badge": {
@@ -548,6 +566,10 @@ public class ConfigDAO {
 			}
 			case "action": {
 				stmt = conn.prepareStatement("DELETE FROM listen.action_info WHERE config_id = ? AND action_id = ?");
+				break;
+			}
+			case "streak": {
+				stmt = conn.prepareStatement("DELETE FROM listen.streak_info WHERE config_id = ? AND streak_id = ?");
 				break;
 			}
 			default:
@@ -559,33 +581,122 @@ public class ConfigDAO {
 		}
 	}
 
-	public JSONArray getMapping(Connection conn, String configId) throws SQLException {
-		JSONArray result = new JSONArray();
-		JSONObject games = getElementMapping(conn, "game_id", "listen.game_info");
-		JSONObject quests = getElementMapping(conn, "quest_id", "listen.quest_info");
-		JSONObject achievements = getElementMapping(conn, "achievement_id", "listen.achievement_info");
-		JSONObject badges = getElementMapping(conn, "badge_id", "listen.badge_info");
-		JSONObject actions = getElementMapping(conn, "action_id", "listen.action_info");
-		JSONObject levels = getElementMapping(conn, "level_num", "listen.level_info");
-		result.put(games);
-		result.put(quests);
-		result.put(achievements);
-		result.put(badges);
-		result.put(actions);
-		result.put(levels);
-		return result;
+	public Mapping getMapping(Connection conn, String configId) throws SQLException {
+		Mapping mapping = new Mapping();
+		mapping.setGameMapping(getGameMapping(conn, configId));
+		mapping.setQuestMapping(getQuestMapping(conn,configId));
+		mapping.setAchievementMapping(getAchievementMapping(conn, configId));
+		mapping.setBadgeMapping(getBadgeMapping(conn, configId));
+		mapping.setActionMapping(getActionMapping(conn, configId));
+		mapping.setLevelMapping(getLevelMapping(conn, configId));
+		mapping.setStreakMapping(getStreakMapping(conn,configId));
+		return mapping;
 	}
 
-	private JSONObject getElementMapping(Connection conn, String elementName, String tableName) throws SQLException {
-		stmt = conn.prepareStatement("SELECT " + elementName + ", listen_to FROM " + tableName);
+	
+	
+
+	private List<GameMapping> getGameMapping(Connection conn, String configId) throws SQLException{
+		List<GameMapping> result = new ArrayList<GameMapping>();
+		stmt= conn.prepareStatement("SELECT game_id, listen_to FROM listen.game_info WHERE config_id = ?");
+		stmt.setString(1, configId);
 		ResultSet rs = stmt.executeQuery();
-		JSONObject object = new JSONObject();
-		HashMap<String, String> map = new HashMap<>();
 		while (rs.next()) {
-			map.put(rs.getString(elementName), rs.getString("listen_to"));
+			GameMapping gm = new GameMapping();
+			gm.setGameId(rs.getString("game_id"));
+			gm.setListenTo(rs.getString("listen_to"));
+			result.add(gm);
 		}
-		String[] spliitedString = elementName.split(Pattern.quote("_"));
-		object.put(spliitedString[0], map);
-		return object;
+		return result;
+	}
+	
+	private List<QuestMapping> getQuestMapping(Connection conn, String configId) throws SQLException {
+		List<QuestMapping> result = new ArrayList<>();
+		stmt= conn.prepareStatement("SELECT game_id, quest_id, listen_to FROM listen.quest_info WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			QuestMapping qm = new QuestMapping();
+			qm.setGameId(rs.getString("game_id"));
+			qm.setQuestId(rs.getString("quest_id"));
+			qm.setListenTo(rs.getString("listen_to"));
+			result.add(qm);
+		}
+		return result;
+	}
+	
+	private List<AchievementMapping> getAchievementMapping(Connection conn, String configId) throws SQLException{
+		List<AchievementMapping> result = new ArrayList<>();
+		stmt= conn.prepareStatement("SELECT game_id, achievement_id, listen_to FROM listen.achievement_info WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			AchievementMapping am = new AchievementMapping();
+			am.setGameId(rs.getString("game_id"));
+			am.setAchievementId(rs.getString("achievement_id"));
+			am.setListenTo(rs.getString("listen_to"));
+			result.add(am);
+		}
+		return result;
+	}
+	
+	private List<BadgeMapping> getBadgeMapping(Connection conn, String configId) throws SQLException{
+		List<BadgeMapping> result = new ArrayList<>();
+		stmt= conn.prepareStatement("SELECT game_id, badge_id, listen_to FROM listen.badge_info WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			BadgeMapping bm = new BadgeMapping();
+			bm.setGameId(rs.getString("game_id"));
+			bm.setBadgeId(rs.getString("badge_id"));
+			bm.setListenTo(rs.getString("listen_to"));
+			result.add(bm);
+		}
+		return result;
+	}
+	
+	private List<ActionMapping> getActionMapping(Connection conn, String configId) throws SQLException{
+		List<ActionMapping> result = new ArrayList<>();
+		stmt= conn.prepareStatement("SELECT game_id, action_id, listen_to FROM listen.action_info WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			ActionMapping am = new ActionMapping();
+			am.setGameId(rs.getString("game_id"));
+			am.setActionId(rs.getString("action_id"));
+			am.setListenTo(rs.getString("listen_to"));
+			result.add(am);
+		}
+		return result;
+	}
+	
+	private List<LevelMapping> getLevelMapping(Connection conn, String configId) throws SQLException{
+		List<LevelMapping> result = new ArrayList<>();
+		stmt= conn.prepareStatement("SELECT game_id, level_num, listen_to FROM listen.level_info WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			LevelMapping lm = new LevelMapping();
+			lm.setGameId(rs.getString("game_id"));
+			lm.setLevelNumber(rs.getInt("level_num"));
+			lm.setListenTo(rs.getString("listen_to"));
+			result.add(lm);
+		}
+		return result;
+	}
+	
+	private List<StreakMapping> getStreakMapping(Connection conn, String configId) throws SQLException{
+		List<StreakMapping> result = new ArrayList<>();
+		stmt= conn.prepareStatement("SELECT game_id, streak_id, listen_to FROM listen.streak_info WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			StreakMapping sm = new StreakMapping();
+			sm.setGameId(rs.getString("game_id"));
+			sm.setStreakId(rs.getString("streak_id"));
+			sm.setListenTo(rs.getString("listen_to"));
+			result.add(sm);
+		}
+		return result;
 	}
 }
