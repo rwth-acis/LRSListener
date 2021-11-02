@@ -2,7 +2,7 @@ package i5.las2peer.services.gamification.listener;
 
 import java.util.Date;
 
-public class Statement {
+public class LrsStatement {
 	private String actor;
 	private String verb;
 	private String what;

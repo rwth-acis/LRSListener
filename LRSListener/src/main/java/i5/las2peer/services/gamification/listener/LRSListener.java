@@ -5,9 +5,11 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,6 +19,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -38,14 +41,24 @@ import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
+import org.glassfish.jersey.client.ClientConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import i5.las2peer.api.Context;
 import i5.las2peer.api.Service;
 import i5.las2peer.api.ServiceException;
+import i5.las2peer.api.logging.MonitoringEvent;
+import i5.las2peer.api.security.UserAgent;
 import i5.las2peer.restMapper.RESTService;
+import i5.las2peer.restMapper.annotations.ServicePath;
+import io.swagger.annotations.ApiParam;
 
-
+@ServicePath("/gamification/listener")
 @SuppressWarnings("unused")
 public class LRSListener extends RESTService implements Runnable{
 	private LrsHandler handler;
@@ -59,209 +72,91 @@ public class LRSListener extends RESTService implements Runnable{
 		thread.start();
 	}
 	
-	
-	
 	@Override
 	public void onStop() {
 		thread.interrupt();
 	}
 	
-	@POST
-	@Path("/notify")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public void notifed() {
-		Map<String,String> map = new HashMap<>();
-		handler.add(map);
-		
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	@Override
 	public void run() {
-		//TODO Thread management
-		while (!Thread.currentThread().isInterrupted()) {
-			try {
-				startListen();
-			} catch (Exception e) {
-				System.out.println("Exception handeled in run method");
-				e.printStackTrace();
-			}
-		}
-	}
-	/**
-	 * Starts the application and contains the listening loop.
-	 * 
-	 * @throws SQLException in case of sql error
-	 */
-	public static void startListen() throws SQLException {
 		
-		//the url of this listener
-		String thisURL = "";
-		//Get config first
-		HttpClient initClient = new HttpClient();
-		initClient.setBaseURL("http://localhost/gamification/configurator");
-		// For Authorization header
-		initClient.setToken("");
-		HashMap<String, String> initHeaders = new HashMap<>();
-		//las2peer applications need access token
-		initHeaders.put("access-token","");
-		String configId ="";
-		String mapping= null;
+	}
+	@POST
+	@Path("/notify")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void notifed(
+			@ApiParam(value = "Mapping detail in JSON", required = true) Mapping mapping) {
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10, "Unauthorized mapping notification with user  " + name);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Because of unauthorized access could not set mapping " + mapping.toString());
+			return;
+		}
 		try {
-			mapping = initClient.executeGet("/mapping" + configId, initHeaders);
-		} catch (IOException e2) {
-			e2.printStackTrace();
-			System.out.println("Failed to retrieve mapping");
+			handler.setMap(mapping);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Could change mapping" + mapping.toString());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "Mapping changed by user " + name);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10, "Could not set mapping. The follwoing error ocurred " + e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Mapping change started from user" + name);
 		}
-		
-		
-		//subscribe to configuration
-		try {
-			initHeaders.put("Content-Type", "application/json; charset=utf-8");
-			JSONObject object = new JSONObject();
-			object.put("url", thisURL);
-			initClient.executePost("/register/" + configId, initHeaders, object);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-			System.out.println("Unable to register as observer for configId" + configId);
-		}
-		
-		//create boolean to reload config
-		boolean newConfig = false;
-			try {
-				//listen to changes ??? how
-				newConfig = false;
-			}catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("Failed to check mapping status");
-			}
-			if(newConfig) {
-				//when Config has been updated, reload configuration ->time check necessary??
-				try {
-					mapping = initClient.executeGet("/mapping" + configId, initHeaders);
-				} catch (IOException e2) {
-					e2.printStackTrace();
-					System.out.println("Failed to retrieve mapping");
-				}
-			}
-			
-			//proceed with normal listening with received configuration
-			HttpClient lrsClient = new HttpClient();
-			lrsClient.setToken(
-					"Basic NjM2NmZiZDgzNDU5M2M3MDU5ODU3ZTg4ODQwYjMyZGRmMTY1NjQwMzo0MGUxZjRlZmRlNDFlM2JlZTFiMWJlOTIxNDQ1ODc5OWEwMWZhNDAy\"");
-			lrsClient.setBaseURL("https://lrs.tech4comp.dbis.rwth-aachen.de/api/connection/statement");
-			while (!newConfig) {
-				try {
-					// Get xAPI statements
-					HashMap<String, String> lrsHeaders = new HashMap<>();
-					lrsHeaders.put("Content-Type", "application/json; charset=utf-8");
-					lrsHeaders.put("Authorization", "");
-					String result = lrsClient.executeGet(
-							"?filter=%7B%22%24and%22%3A%5B%7B%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22person%5C%22%5D%7D%22%2C%22person._id%22%3A%7B%22%24in%22%3A%5B%7B%22%24oid%22%3A%225db02311c5dcd9003d904ba4%22%7D%5D%7D%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D",
-							lrsHeaders);
-					lrsClient.disconnect();
-					if (result != null) {
-						JSONObject[] relevantStatements = parseToJson(result);
-						// This is the correct usage, but for testing, we only use one statement
-//						for (JSONObject jsonObject : relevantStatements) {
-						// Test code begins here
-						JSONObject jsonObject = relevantStatements[0];
-						// Test Code ends here
-						String[] gameDetails = getGameDetails(jsonObject);
-						System.out.println(gameDetails[0] + " " + gameDetails[1] + " " + gameDetails[2]);
-						executeGamification(gameDetails, mapping);
-//						}
-						try {
-							Thread.sleep(10000);
-						} catch (InterruptedException e) {
-							System.out.println("Interrupted sleep. How rude!");
-						}
-					}
-					System.out.println("Still running");
-				} catch (Exception e) {
-					System.out.println("Uppsi got an error");
-					System.err.println(e.getMessage());
-					System.err.println(e.getStackTrace());
-				} finally {
-					lrsClient.disconnect();
-					initClient.disconnect();
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param jsonObject
-	 * @return values to node.statement.actor/verb/object
-	 */
-	private static String[] getGameDetails(JSONObject jsonObject) {
-		String[] result = new String[3];
-		JSONObject statement = jsonObject.getJSONObject("node").getJSONObject("statement");
-		result[0] = statement.getJSONObject("actor").getString("name");
-		result[1] = statement.getJSONObject("verb").getJSONObject("display").getString("en-US");
-		result[2] = statement.getJSONObject("object").getJSONObject("definition").getJSONObject("name")
-				.getString("en-US");
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param line
-	 * @return JSONObject Array, containing JSONObjects, each starting with
-	 *         {"cursor":...
-	 */
-	private static JSONObject[] parseToJson(String line) {
-		JSONObject object = new JSONObject(line);
-		JSONArray array = object.getJSONArray("edges");
-		JSONObject[] objectArray = new JSONObject[array.length()];
-		for (int i = 0; i < array.length(); i++) {
-			objectArray[i] = array.getJSONObject(i);
-		}
-		return objectArray;
 	}
 	
-	private static Map<String, ?> extractGamificationElement(String mapping, String gamificationElement) {
-		JSONArray array = new JSONArray(mapping);
-		Map<String, ?> result = new HashMap<>();
-		switch (gamificationElement) {
-		case "game":
-			result = array.getJSONObject(0).getJSONObject("game").toMap();
-			break;
-		case "quest":
-			result = array.getJSONObject(1).getJSONObject("quest").toMap();
-			break;
-		case "achievement":
-			result = array.getJSONObject(2).getJSONObject("achievement").toMap();
-			break;
-		case "badge":
-			result = array.getJSONObject(3).getJSONObject("badge").toMap();
-			break;
-		case "action":
-			result = array.getJSONObject(4).getJSONObject("action").toMap();
-			break;
-		case "level":
-			result = array.getJSONObject(5).getJSONObject("level").toMap();
-			break;
-		case "streak":
-			result = array.getJSONObject(6).getJSONObject("streak").toMap();
-			break;
+	@POST
+	@Path("/testStatements")
+	public Response retriveStatements() {
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target("https://lrs.tech4comp.dbis.rwth-aachen.de/api/connection/statement");
+		String response = target
+				.path("?filter=%7B%22%24and%22%3A%5B%7B%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22person%5C%22%5D%7D%22%2C%22person._id%22%3A%7B%22%24in%22%3A%5B%7B%22%24oid%22%3A%225db02311c5dcd9003d904ba4%22%7D%5D%7D%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D")
+				.request()
+				.header("Authorization", "Basic NjM2NmZiZDgzNDU5M2M3MDU5ODU3ZTg4ODQwYjMyZGRmMTY1NjQwMzo0MGUxZjRlZmRlNDFlM2JlZTFiMWJlOTIxNDQ1ODc5OWEwMWZhNDAy")
+				.get(String.class)
+				.toString();
+		List<LrsStatement> statements = null;
+		if (response!= null) {
+			statements = parseToList(response);
 		}
-		return result;
+		return Response.status(HttpURLConnection.HTTP_OK).entity(response).build();
 	}
+	
+	@POST
+	@Path("/testMapping")
+	public Response retriveMapping() {
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target("http://localhost:8080/gamification/configurator");
+		Mapping response = target
+				.path("/mapping/testConfig")
+				.request()
+				.header("access-token", "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoZTJ6NVRzbEM1M3VPQXZxNmFWckplT2I0ZUx5TUxUam9IT3dIdTBiRmFJIn0.eyJleHAiOjE2MzUzNDYxMzgsImlhdCI6MTYzNTM0MjUzOCwiYXV0aF90aW1lIjoxNjM1MzQyNTE5LCJqdGkiOiI1YmMyNTViNi00YTQ5LTRlMzItODA0ZC02Yzc3ODRlNTNkN2IiLCJpc3MiOiJodHRwczovL2FwaS5sZWFybmluZy1sYXllcnMuZXUvYXV0aC9yZWFsbXMvbWFpbiIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI5OTMzLTlkM2RhYjUxYWE5MCIsInR5cCI6IkJlYXJlciIsImF6cCI6ImJkZGE3Mzk2LTNmNmQtNGQ4My1hYzIxLTY1YjQwNjlkMGVhYiIsIm5vbmNlIjoiNjM2ZTdhZjVkZmJjNGM5MzlkMmUwYzA1MzAxMDIzNjUiLCJzZXNzaW9uX3N0YXRlIjoiYWUwNTBhYzYtZjg2Mi00Y2I2LWJkYTYtZDM1NDJlMjk0NThmIiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vMTM3LjIyNi4yMzIuMTc1OjMyMDEwIiwiaHR0cDovL3RlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjMxMDEwIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwczovL2ZpbGVzLnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6OTA5OCIsImh0dHBzOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODQiLCJodHRwczovL21vbml0b3IudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODEiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHBzOi8vZ2l0LnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovLzEyNy4wLjAuMTo4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODAiLCJodHRwczovL2NhZS1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODAiLCJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJodHRwOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZSIsImh0dHBzOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZTo5MDk4IiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MSIsImh0dHBzOi8vbGFzMnBlZXIudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODIiLCJodHRwczovL3NiZi1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwic2lkIjoiYWUwNTBhYzYtZjg2Mi00Y2I2LWJkYTYtZDM1NDJlMjk0NThmIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJNYXJjIEJlbHNjaCIsInByZWZlcnJlZF91c2VybmFtZSI6Im1iZWxzY2giLCJnaXZlbl9uYW1lIjoiTWFyYyIsImZhbWlseV9uYW1lIjoiQmVsc2NoIiwiZW1haWwiOiJtYXJjLmJlbHNjaEByd3RoLWFhY2hlbi5kZSJ9.LMjOFlT-3JWqDPbSymEQKX9sROvosWIAPMRufTocRGy-0DQAuIJS41iSYPO3jyRC2i9HsyGdShoJy9ISocb4F3BiWUQQleuqXQ9zGAVP9i26j9fTH4xJRR8YWIIQp57-f8tx63dA85J9IAJZvaNkLGDcPzq2e5bbCOlCbRyB3KrirA3gtnwspwFF8yl4YHf93bQsugkAtdUACU-Ouh65_dDdTsX7nDmv2PsXC-qOWc52DPmPydOC_PEzP00hI5AkgUnmNLx6YqBT5Yif3jrMUkkzwlzBQDoQGGPIbNOGwosENlDbuaZ7jdqrpexXTWys7fGh6foU7zAApHKSmxqUFw")
+				.header("Authorization", "Basic T0lEQ19TVUItOTkzMy05ZDNkYWI1MWFhOTA6OTkzMy05ZDNkYWI1MWFhOTA=")
+				.get(Mapping.class);		
+		return Response.status(HttpURLConnection.HTTP_OK).entity(response).build();
+	}
+
+	private List<LrsStatement> parseToList(String response) {
+		List<LrsStatement> statements = new ArrayList<>();
+		JSONObject object = new JSONObject(response);
+		JSONArray array = object.getJSONArray("edges");
+		for (int i = 0; i < array.length(); i++) {
+			JSONObject statement = array.getJSONObject(i).getJSONObject("node").getJSONObject("statement");
+			LrsStatement stmt = new LrsStatement();
+			stmt.setActor(statement.getJSONObject("actor").getString("name"));
+			stmt.setVerb(statement.getJSONObject("verb").getJSONObject("display").getString("en-US"));
+			stmt.setWhat(statement.getJSONObject("object").getJSONObject("definition").getJSONObject("name")
+				.getString("en-US"));
+			//stmt.setTimeStamp(statement.getString("timestamp"));
+			stmt.setTimeStamp(null);
+			statements.add(stmt);
+		}
+		return statements;
+	}
+	
 	
 	private static String retriveGameElement(String path) throws IOException {
 		HttpClient gamingClient = new HttpClient();
@@ -275,69 +170,7 @@ public class LRSListener extends RESTService implements Runnable{
 		return gameElement;
 	}
 
-	/**
-	 * @param gamificationDetails contains actors, verb and activity of xAPI statement
-	 * @param mapping contains activities to listen for
-	 * @return URL address as String to fetch all xAPI statements related to
-	 *         Gamification Framework activities
-	 */
-
-	private static void executeGamification(String[] gamificationDetails, String mapping) {
-		String who = gamificationDetails[0];
-		String did = gamificationDetails[1];
-		String what = gamificationDetails[2];
-		Map<String, ?> listenGame = null;
-		Map<String, ?> listenQuest = null;
-		Map<String, ?> listenAchievement = null;
-		Map<String, ?> listenBadge =null;
-		Map<String, ?> listenAction = null;
-		Map<String, ?> listenLevel = null;
-		Map<String, ?> listenStreak = null;
-		if (mapping != null) {
-			listenGame = extractGamificationElement(mapping, "game");
-			listenQuest = extractGamificationElement(mapping, "quest");
-			listenAchievement = extractGamificationElement(mapping, "achievement");
-			listenBadge = extractGamificationElement(mapping, "badge");
-			listenAction = extractGamificationElement(mapping, "action");
-			listenLevel = extractGamificationElement(mapping, "level");
-			listenStreak = extractGamificationElement(mapping, "streak");
-		}
-		if (who != null && did != null && what != null) {
-			try {
-				if (listenGame.containsValue(what)) {
-					executeGame(who, did, what, "configId", "elementId");
-				} 
-				else if(listenQuest.containsValue(what)){
-					executeQuest(who, did, what, "configId", "elementId");
-				}
-				else if(listenAchievement.containsValue(what)){
-					executeAchievement(who, did, what, "configId", "elementId");
-				}
-				else if(listenBadge.containsValue(what)){
-					executeBadge(who, did, what, "configId", "elementId");
-				}
-				else if(listenAction.containsValue(what)){
-					executeAction(who, did, what, "configId", "elementId");
-				}
-				else if(listenLevel.containsValue(what)){
-					executeLevel(who, did, what, "configId", "elementId");
-				}
-				else if(listenStreak.containsValue(what)){
-					executeStreak(who, did, what, "configId", "elementId");
-				}
-				else {
-					throw new IllegalArgumentException("Unexpected value: " + what);
-				}
-			}
-			catch (IllegalArgumentException e) {
-				e.printStackTrace();
-				System.out.println("Activity " + what + " is not supported");
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+	
 
 	private static void executeStreak(String who, String did, String what, String configId, String streakId) {
 		try {
@@ -845,4 +678,6 @@ public class LRSListener extends RESTService implements Runnable{
 		}
 
 	}
+
+	
 }

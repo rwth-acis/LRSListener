@@ -67,6 +67,7 @@ import org.json.JSONObject;
  * should be removed.
  * 
  */
+@SuppressWarnings("unused")
 @Api(value = "/gamification/configurator", authorizations = { @Authorization(value = "configurator_auth") })
 @SwaggerDefinition(info = @Info(title = "ListenerConfigurator Service", version = "0.1", description = "Configurator for Listener Service", termsOfService = "http://your-terms-of-service-url.com", contact = @Contact(name = "Marc Belsch", url = "dbis.rwth-aachen.de", email = "marc.belsch.rwth-aachen.de"), license = @License(name = "your software license name", url = "http://your-software-license-url.com")))
 
@@ -109,7 +110,6 @@ public class ListenerConfigurator extends RESTService {
 	 * 
 	 * @param configId    Config ID obtained from LMS
 	 * @param configModel  Config in JSON
-	 * @param contentType Content type (implicitly sent in header)
 	 * @return HTTP Response returned as JSON object
 	 */
 	@POST
@@ -126,7 +126,6 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "createNewConfig", notes = "Create configuration")
 	public Response createNewConfig(
 			@ApiParam(value = "Config ID to store a new config", required = true) @PathParam("configId") String configId,
-			@ApiParam(value = "Content-type in header", required = true) @HeaderParam(value = HttpHeaders.CONTENT_TYPE) String contentType,
 			@ApiParam(value = "Configuration detail in JSON", required = true) ConfigModel configModel) {
 
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
@@ -296,7 +295,6 @@ public class ListenerConfigurator extends RESTService {
 	 * Update an configuration.
 	 * 
 	 * @param configId    Config ID obtained from LMS
-	 * @param contentType Content type (implicitly sent in header)
 	 * @param configModel Config Model in JSON
 	 * @return HTTP Response returned as JSON object
 	 */
@@ -311,7 +309,6 @@ public class ListenerConfigurator extends RESTService {
 	@ApiOperation(value = "updateConfiguration", notes = "Update a configuration")
 	public Response updateConfiguration(
 			@ApiParam(value = "Config ID to update a configuration", required = true) @PathParam("configId") String configId,
-			@ApiParam(value = "Configuration data in multiple/form-data type", required = true) @HeaderParam(value = HttpHeaders.CONTENT_TYPE) String contentType,
 			@ApiParam(value = "Configuration detail in JSON", required = true) ConfigModel configModel) {
 
 		// Request log

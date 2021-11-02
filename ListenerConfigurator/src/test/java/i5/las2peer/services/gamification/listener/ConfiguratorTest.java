@@ -3,7 +3,6 @@ import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 
@@ -18,14 +17,13 @@ import i5.las2peer.connectors.webConnector.client.ClientResponse;
 import i5.las2peer.connectors.webConnector.client.MiniClient;
 
 import org.junit.After;
-import org.junit.Assert;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+
 import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
@@ -33,15 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
-import org.apache.commons.lang3.tuple.Pair;
 
-@SuppressWarnings("unused")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConfiguratorTest {
 	
