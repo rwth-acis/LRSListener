@@ -44,13 +44,12 @@ private static final int HTTP_PORT = 8081;
 	private static WebConnector connector;
 	private static ByteArrayOutputStream logStream;
 	
-	private static MiniClient c1, c2, c3;
+	private static MiniClient c1;
 	
-	private static UserAgentImpl user1, user2, user3;
+	private static UserAgentImpl user1;
 
-	private static final String mainPath = "gamification/listener";
+	private static String mainPath = "gamification/listener";
 	private static Map<String, String> headers;
-	//private static List<Pair<String,Integer>> actionList;
 	
 	// to fetch data per batch
 	int currentPage = 1;
@@ -72,17 +71,14 @@ private static final int HTTP_PORT = 8081;
 		node.launch();
 		
 		user1 = MockAgentFactory.getAdam();
-		user2 = MockAgentFactory.getAbel();
-		user3 = MockAgentFactory.getEve();
+
 		
 		// agent must be unlocked in order to be stored 
 		user1.unlock("adamspass");
-		user2.unlock("abelspass");
-		user3.unlock("evespass");
+
 		
 		node.storeAgent(user1);
-		node.storeAgent(user2);
-		node.storeAgent(user3);
+
 	
 		node.startService(new ServiceNameVersion(LRSListener.class.getName(), "0.1"), "a pass");
 		
@@ -166,7 +162,7 @@ private static final int HTTP_PORT = 8081;
 		}
 	}
 	
-	@Test
+	
 	public void testA3_testNotify(){
 		System.out.println("Test --- Create New Configuration");
 		try
@@ -187,5 +183,27 @@ private static final int HTTP_PORT = 8081;
 			fail("Exception: " + e);
 			System.exit(0);
 		}
+	}
+	
+	@Test
+	public void testA4_testGamification(){
+		System.out.println("Test --- Create New Configuration");
+		try
+		{
+			mainPath = mainPath +  "/testGamification";
+			ClientResponse result = c1.sendRequest("POST", mainPath , "", "text/plain", "*/*", headers);
+			System.out.println(result.getResponse());
+			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
+				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
+			}
+			else{
+				assertEquals(HttpURLConnection.HTTP_CREATED,result.getHttpCode());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception: " + e);
+			System.exit(0);
+		}
+
 	}
 }
