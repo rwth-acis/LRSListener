@@ -53,7 +53,7 @@ public class LrsHandler{
 	private String l2pAuth;
 	private String l2pAccessToken;
 	private String timeStamp;
-	private String adjustedFilter;
+
 
 	
 	public LrsHandler(String gamificationUrl, String lrsUrl, String lrsFilter, String configuratorUrl, String configId, String lrsAuth, String l2pAuth, String l2pAccessToken) {
@@ -80,7 +80,7 @@ public class LrsHandler{
 			timeStamp = getTimeStampFromDB(this.configId);
 			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Received and set timestamp correctly");
 		} catch (Exception e) {
-			timeStamp = getCurrentTimeStamp();
+			timeStamp = getCurrentTime();
 			e.printStackTrace();
 			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting  timestamp");
 			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
@@ -98,7 +98,7 @@ public class LrsHandler{
 					String result = null;
 					try {
 						result = executeGamification(statement);
-						setTimeStamp(getCurrentTimeStamp());
+						setTimeStamp(getCurrentTime());
 						adjustFilterWithTimeStamp();
 						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Statement executed successfully " + statement.toString());
 						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "Result of executed statement " + result);
@@ -807,20 +807,20 @@ public class LrsHandler{
 	 * 
 	 * @return get the current Time in parses it into correct format
 	 */
-	private String getCurrentTimeStamp() {
+	private String getCurrentTime() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 	
 	private void adjustFilterWithTimeStamp() {
-		// TODO Auto-generated method stub
-		String encodedTimeStamp = encodeTimeStamp();
-		this.adjustedFilter = getLrsFilter() + encodedTimeStamp;
+		setLrsFilter(encodeTimeStamp());
 	}
 	
 	private String encodeTimeStamp() {
 		// TODO Auto-generated method stub
-		//encode timestamp like in lrs request required 
+		//encode timestamp like in lrs request required
+		//replace timestamp with regex
+		//url encode and return it
 		return null;
 	}
 

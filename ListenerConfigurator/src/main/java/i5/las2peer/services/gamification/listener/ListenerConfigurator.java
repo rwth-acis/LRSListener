@@ -43,6 +43,8 @@ import io.swagger.annotations.SwaggerDefinition;
 
 
 import i5.las2peer.restMapper.RESTService;
+import i5.las2peer.api.security.Agent;
+import i5.las2peer.api.security.AnonymousAgent;
 import i5.las2peer.api.security.UserAgent;
 import i5.las2peer.api.ManualDeployment;
 import i5.las2peer.api.logging.MonitoringEvent;
@@ -132,10 +134,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/" + configId, true);
 		long randomLong = new Random().nextLong();
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		JSONObject objResponse = new JSONObject();
 		Connection conn = null;
@@ -224,10 +233,17 @@ public class ListenerConfigurator extends RESTService {
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
 				"GET " + "gamification/configurator/" + configId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		JSONObject objResponse = new JSONObject();
 		ConfigModel configModel = null;
@@ -315,10 +331,17 @@ public class ListenerConfigurator extends RESTService {
 		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
 				"UPDATE " + "gamification/configurator/" + configId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		JSONObject objResponse = new JSONObject();
 		Connection conn = null;
@@ -394,10 +417,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/" + configId, true);
 		long randomLong = new Random().nextLong();
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -475,10 +505,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/game/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -556,10 +593,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/game/" + configId + gameId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -663,10 +707,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/game/" + configId + "/" + gameId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -751,10 +802,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/game/" + configId + "/" + gameId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -849,10 +907,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/quest/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -946,10 +1011,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/quest/" + configId + "/" + questId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1059,10 +1131,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/quest/" + configId + "/" + questId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1147,10 +1226,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/quest/" + configId + "/" + questId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1245,10 +1331,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/achievement/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1344,10 +1437,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/achievement/" + configId + "/" + achievementId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1452,10 +1552,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/achievement/" + configId + "/" + achievementId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1542,10 +1649,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/achievement/" + configId + "/" + achievementId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1639,10 +1753,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/badge/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1736,10 +1857,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/badge/" + configId + "/" + badgeId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1843,10 +1971,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/badge/" + configId + "/" + badgeId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -1931,10 +2066,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/badge/" + configId + "/" + badgeId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2028,10 +2170,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/action/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2125,10 +2274,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/action/" + configId + "/" + actionId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2232,10 +2388,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/action/" + configId + "/" + actionId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2320,10 +2483,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/action/" + configId + "/" + actionId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2417,10 +2587,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/level/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2516,10 +2693,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/level/" + configId + "/" + levelId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2623,10 +2807,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/level/" + configId + "/" + levelId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2711,10 +2902,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/level/" + configId + "/" + levelId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2808,10 +3006,17 @@ public class ListenerConfigurator extends RESTService {
 				"POST " + "gamification/configurator/streak/" + configId + "/" + listenTo, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -2907,10 +3112,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/streak/" + configId + "/" + streakId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3014,10 +3226,17 @@ public class ListenerConfigurator extends RESTService {
 				"PUT " + "gamification/configurator/streak/" + configId + "/" + streakId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3102,10 +3321,17 @@ public class ListenerConfigurator extends RESTService {
 				"DELETE " + "gamification/configurator/streak/" + configId + "/" + streakId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3192,10 +3418,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/mapping/" + configId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3353,10 +3586,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/timestamp/" + configId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3426,10 +3666,17 @@ public class ListenerConfigurator extends RESTService {
 				"GET " + "gamification/configurator/timestamp/" + configId, true);
 		long randomLong = new Random().nextLong(); // To be able to match
 
-		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-		String name = userAgent.getLoginName();
-		if (name.equals("anonymous")) {
+		String name = null;
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
 			return unauthorizedMessage();
+		}
+		else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		}
+		else {
+			name = agent.getIdentifier();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
