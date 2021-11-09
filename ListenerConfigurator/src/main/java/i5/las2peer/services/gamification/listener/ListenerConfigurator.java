@@ -3181,10 +3181,10 @@ public class ListenerConfigurator extends RESTService {
 	@GET
 	@Path("/mapping/{configId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Config Delete Success"),
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Mapping retrieve success"),
 			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
 			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
-	@ApiOperation(value = "deleteConfiguration", notes = "Delete an configuration")
+	@ApiOperation(value = "getMapping", notes = "Retrieve a mapping")
 	public Response getMapping(@PathParam("configId") String configId) {
 
 		// Request log
@@ -3328,6 +3328,149 @@ public class ListenerConfigurator extends RESTService {
 			try {
 				conn.close();
 			} catch (SQLException e) {
+				logger.printStackTrace(e);
+			}
+		}
+	}
+	
+	/**
+	 * Acquire a timestamp 
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @return HTTP Response returned as JSON object
+	 */
+	@GET
+	@Path("/timestamp/{configId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Timestamp retrieve success"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "getTime", notes = "Retrieve a timestamp")
+	public Response getTime(@PathParam("configId") String configId) {
+
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"GET " + "gamification/configurator/timestamp/" + configId, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				if (!configAccess.isConfigIdExist(conn, configId)) {
+					objResponse.put("message", "Cannot get timesttamp. Configuration not found");
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+				objResponse.put("message",
+						"Cannot get timestamp. Cannot check whether configuration ID exist or not. Database error. "
+								+ e1.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
+			
+			String timestamp = configAccess.getTimeWithId(conn, configId);
+			
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
+			return Response.status(HttpURLConnection.HTTP_OK).entity(timestamp).build();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot get timestamp. Failed to get connection. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.build();
+		}finally {
+			try {
+
+			} catch (Exception e) {
+				logger.printStackTrace(e);
+			}
+		}
+	}
+	
+	/**
+	 * Set a timestamp
+	 * 
+	 * @param configId Config ID obtained from LMS
+	 * @param timestamp timestamp to be stored
+	 * @return HTTP Response returned as JSON object
+	 */
+	@POST
+	@Path("/timestamp/{configId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = { @ApiResponse(code = HttpURLConnection.HTTP_OK, message = "Stored timestamp success"),
+			@ApiResponse(code = HttpURLConnection.HTTP_NOT_FOUND, message = "Config not found"),
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Bad Request"), })
+	@ApiOperation(value = "setTime", notes = "Store a timestamp")
+	public Response setTime(
+			@PathParam("configId") String configId,
+			@ApiParam(value = "timestamp as String", required = true) String timestamp) {
+
+		// Request log
+		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
+				"GET " + "gamification/configurator/timestamp/" + configId, true);
+		long randomLong = new Random().nextLong(); // To be able to match
+
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			return unauthorizedMessage();
+		}
+		Connection conn = null;
+		JSONObject objResponse = new JSONObject();
+		try {
+			conn = dbm.getConnection();
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "" + randomLong, true);
+			try {
+				if (!configAccess.isConfigIdExist(conn, configId)) {
+					objResponse.put("message", "Cannot set timestamp. Configuration not found");
+					Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+							(String) objResponse.get("message"));
+					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString())
+							.build();
+				}
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+				objResponse.put("message",
+						"Cannot set timestamp. Cannot check whether configuration ID exist or not. Database error. "
+								+ e1.getMessage());
+				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
+						(String) objResponse.get("message"));
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
+			
+			configAccess.setTime(conn, configId, timestamp);
+			
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_27, "" + configId, true);
+			return Response.status(HttpURLConnection.HTTP_OK).entity("Successfully stored timestamp").build();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			objResponse.put("message", "Cannot get mapping. Failed to get connection. " + e.getMessage());
+			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR, (String) objResponse.get("message"));
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+					.build();
+		}finally {
+			try {
+
+			} catch (Exception e) {
 				logger.printStackTrace(e);
 			}
 		}

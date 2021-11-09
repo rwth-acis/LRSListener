@@ -699,4 +699,23 @@ public class ConfigDAO {
 		}
 		return result;
 	}
+
+	public String getTimeWithId(Connection conn, String configId) throws SQLException {
+		String result = null;;
+		stmt= conn.prepareStatement("SELECT times FROM listener.times WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			result = rs.getString("times");
+		}
+		return result;
+	}
+
+	public void setTime(Connection conn, String configId, String timestamp) throws SQLException {
+		stmt = conn
+				.prepareStatement("INSERT INTO listener.times (config_id, times) VALUES (?, ?)");
+		stmt.setString(1, configId);
+		stmt.setString(2, timestamp);
+		stmt.executeUpdate();
+	}
 }

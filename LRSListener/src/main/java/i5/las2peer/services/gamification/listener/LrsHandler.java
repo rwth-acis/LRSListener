@@ -1,8 +1,15 @@
 package i5.las2peer.services.gamification.listener;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +19,7 @@ import java.util.Map;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -44,8 +52,19 @@ public class LrsHandler{
 	private String lrsAuth;
 	private String l2pAuth;
 	private String l2pAccessToken;
+	private String timeStamp;
+	private String adjustedFilter;
+
 	
 	public LrsHandler(String gamificationUrl, String lrsUrl, String lrsFilter, String configuratorUrl, String configId, String lrsAuth, String l2pAuth, String l2pAccessToken) {
+		this.gamificationUrl = gamificationUrl;
+		this.lrsUrl = lrsUrl;
+		this.lrsFilter = lrsFilter;
+		this.configuratorUrl = configuratorUrl;
+		this.configId = configId;
+		this.lrsAuth = lrsAuth;
+		this.l2pAuth = l2pAuth;
+		this.l2pAccessToken = l2pAccessToken;
 		Mapping mapping = null;
 		try {
 			mapping = getMappingFromConfigurator(getConfigId());
@@ -54,6 +73,16 @@ public class LrsHandler{
 		} catch (Exception e) {
 			e.printStackTrace();
 			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting  mapping");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, mapping.toString());
+		}
+		try {
+			timeStamp = getTimeStampFromDB(this.configId);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Received and set timestamp correctly");
+		} catch (Exception e) {
+			timeStamp = getCurrentTimeStamp();
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting  timestamp");
 			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
 			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, mapping.toString());
 		}
@@ -69,6 +98,8 @@ public class LrsHandler{
 					String result = null;
 					try {
 						result = executeGamification(statement);
+						setTimeStamp(getCurrentTimeStamp());
+						adjustFilterWithTimeStamp();
 						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Statement executed successfully " + statement.toString());
 						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "Result of executed statement " + result);
 					}
@@ -85,6 +116,9 @@ public class LrsHandler{
 				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
 				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, statements.toString());
 			}
+			finally {
+				writeTimeStampToDB(getConfigId());
+			}
 		}
 	}
 
@@ -96,12 +130,13 @@ public class LrsHandler{
 		ClientConfig clientConfig = new ClientConfig();
 		Client client = ClientBuilder.newClient(clientConfig);
 		WebTarget target = client.target(getConfiguratorUrl());
-		Mapping response = target
+		Invocation invocation = target
 				.path("/mapping/" + configId)
 				.request()
 				.header("access-token", getL2pAccessToken())
 				.header("Authorization", getL2pAuth())
-				.get(Mapping.class);
+				.buildGet();
+		Mapping response = invocation.invoke(Mapping.class);
 		return response;
 	}
 
@@ -211,26 +246,39 @@ public class LrsHandler{
 	 * @return Result of the executed Gamification request
 	 */
 	private String executeStreak(LrsStatement statement, String gameId, String streakId) {
+		//TODO
 		String result = null;
 		try {
 			String streak = retriveGameElement("/gamification/configurator/streak/" + getConfigId() + "/" + streakId);
 			JSONObject jsonStreak = new JSONObject(streak);
 			String boundary =  "--32532twtfaweafwsgfaegfawegf442365"; 
-			
-//			gameMap.put("Content-Type", "multipart/form-data; boundary="+boundary);
+			byte[] output = new byte[0];
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
-				//result = gamificationPostRequest();
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/streaks/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
-			case "submitted":
-				System.out.println("submitted");
+			case "updated":
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/streaks/" + gameId + "/" + streakId, output, "multipart/form-data; boundary="+boundary);
+				return result;
+			case "deleted":
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/streaks/" + gameId + "/" + streakId);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -263,22 +311,34 @@ public class LrsHandler{
 			obj.put("questnotificationcheck", String.valueOf(jsonQuest.getBoolean("useNotification")));
 			obj.put("questnotificationmessage", jsonQuest.getString("notificationMessage"));
 			
+			byte[] output = obj.toString().getBytes("UTF-8");
 			
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/quests/" + gameId, output, "application/json");
 				return result;
 			case "updated":
-				System.out.println("updated");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/quests/" + gameId + "/" + questId, output, "application/json");
 				return result;
 			case "deleted":
-				System.out.println("deleted");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/quests/" + gameId + "/" + questId);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+		} catch (IllegalStateException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -314,30 +374,35 @@ public class LrsHandler{
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			
 			formData.writeTo(out);
-			
+			byte[] output = out.toString().getBytes("UTF-8");
 
 			
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
-				result = gamificationPostRequest("path", out.toString());
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/actions/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				System.out.println("updated");
-				result = gamificationPutRequest("path", out.toString());
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/actions/" + gameId + "/" + actionId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				System.out.println("deleted");
-				result = gamificationDeleteRequest("path");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/actions/" + gameId + "/" + actionId);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
-			return result;
-		} catch (IOException e) {
+		} catch (IllegalStateException e) {
 			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -373,26 +438,35 @@ public class LrsHandler{
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			
 			formData.writeTo(out);
+			byte[] output = out.toString().getBytes("UTF-8");
 			
 			
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/levels/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				System.out.println("updated");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/levels/" + gameId + "/" + levelNumber, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				System.out.println("deleted");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/levels/" + gameId + "/" + levelNumber);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
-			return result;
-		} catch (IOException e) {
+		} catch (IllegalStateException e) {
 			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -427,26 +501,34 @@ public class LrsHandler{
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			
 			formData.writeTo(out);
-			
+			byte[] output = out.toString().getBytes("UTF-8");
 			
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/achievements/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				System.out.println("updated");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/achievements/" + gameId + "/" + achievementId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				System.out.println("deleted");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/achievements/" + gameId + "/" + achievementId);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
-			return result;
-		} catch (IOException e) {
+		} catch (IllegalStateException e) {
 			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -478,27 +560,35 @@ public class LrsHandler{
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			
 			formData.writeTo(out);
-			
-		
-			String memberId = null;
+			byte[] output = out.toString().getBytes("UTF-8");
+
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/games/data", output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				System.out.println("updated");
+				//This should never happen
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/games/data/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				System.out.println("deleted");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/games/data/" + gameId);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
-			return result;
-		} catch (IOException e) {
+		} catch (IllegalStateException e) {
 			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -513,7 +603,7 @@ public class LrsHandler{
 	private String executeBadge(LrsStatement statement, String gameId, String badgeId) {
 		String result = null;
 		try {
-			String badge = retriveGameElement("/gamification/configurator/badge/" + getConfigId() + "/" + badgeId);
+			String badge = retriveGameElement("/badge/" + getConfigId() + "/" + badgeId);
 			JSONObject jsonBadge = new JSONObject(badge);
 			
 			File badgeImage = new File("./files/logo.png");
@@ -536,35 +626,34 @@ public class LrsHandler{
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			
 			formData.writeTo(out);
-//			FileDataBodyPart filepart = new FileDataBodyPart("badgeimageinput", new File("logo.png"));
-//			FormDataMultiPart mulitpart = new FormDataMultiPart()
-//					.field("badgeid", jsonBadge.getString("badgeId"))
-//					.field("badgename", jsonBadge.getString("name"))
-//					.field("badgedesc", jsonBadge.getString("description"))
-//					.field("dev" ,"yes")
-//					.field("badgenotificationcheck", String.valueOf(jsonBadge.getBoolean("useNotification")))
-//					.field("badgenotificationmessage", jsonBadge.getString("notificationMessage"));
-//					//.bodyPart(filepart);
-//			
+			byte[] output = out.toString().getBytes("UTF-8");
 			
 			switch (statement.getVerb()) {
 			case "created":
-				System.out.println("created");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPostRequest("/badges/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				System.out.println("updated");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationPutRequest("/badges/" + gameId + "/" + badgeId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				System.out.println("deleted");
+				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				result = gamificationDeleteRequest("/badges/" + gameId + "/" + badgeId);
 				return result;
 			default:
-				throw new IllegalArgumentException("Unexpected value: " + statement.getVerb());
+				throw new IllegalStateException("Unexpected value: " + statement.getVerb());
 			}
-		} catch (IllegalArgumentException e) {
-			System.out.println("Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
-			return result;
-		} catch (IOException e) {
+		} catch (IllegalStateException e) {
 			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			return result;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -592,48 +681,182 @@ public class LrsHandler{
 	 * @param path The path to trigger the corresponding gamification function. Path will be appended to gamificationUrl
 	 * @param body The body to be send. Usually Gamification Element
 	 * @return Response in String format
+	 * @throws IOException 
 	 */
-	private String gamificationPostRequest(String path, String body) {
-		Client client = ClientBuilder.newClient();
-		WebTarget target = client.target(getGamificationUrl());
-		Response response = target
-				.path(path)
-				.request()
-				.post(Entity.entity(body, MediaType.MULTIPART_FORM_DATA_TYPE));
-				
-		return response.readEntity(String.class);
+	private String gamificationPostRequest(String path, byte[] body, String contentType) throws IOException {
+		URL url = null;
+		try {
+			url = new URL(getGamificationUrl() + path);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
+		}
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		connection.setDoInput(true);
+		connection.setDoOutput(true);
+		connection.setRequestProperty("Content-Type", contentType);
+		connection.setRequestProperty("Authroization", getL2pAuth());
+		connection.setRequestProperty("access-token", getL2pAccessToken());
+		connection.setRequestMethod("POST");
+		OutputStream wr = connection.getOutputStream();
+		wr.write(body, 0, body.length);
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send POST request to " +url);
+		BufferedReader br = null;
+		if (connection.getResponseCode() >= 100 && connection.getResponseCode() < 400) {
+			br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
+		} else {
+			br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"));
+		}
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from POST request to endpoint " + url);
+		StringBuilder response = new StringBuilder();
+		String responseLine = null;
+		while ((responseLine = br.readLine()) != null) {
+			response.append(responseLine.trim());
+		}
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
+		return response.toString();
 	}
 	
 	/**
 	 * 
 	 * @param path The path to trigger the corresponding gamification function. Path will be appended to gamificationUrl
+	 * @param output 
 	 * @param body The body to be send. Usually Gamification Element
 	 * @return Response in String format
+	 * @throws IOException 
 	 */
-	private String gamificationPutRequest(String path, String body) {
-		Client client = ClientBuilder.newClient();
-		WebTarget target = client.target(getGamificationUrl());
-		Response response = target
-				.path(path)
-				.request()
-				.put(Entity.entity(body, MediaType.MULTIPART_FORM_DATA_TYPE));
-				
-		return response.readEntity(String.class);
+	private String gamificationPutRequest(String path, byte[] body, String boundary) throws IOException {
+		URL url = null;
+		try {
+			url = new URL(getGamificationUrl() + path);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
+		}
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		connection.setDoInput(true);
+		connection.setDoOutput(true);
+		connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+		connection.setRequestProperty("Authroization", getL2pAuth());
+		connection.setRequestProperty("access-token", getL2pAccessToken());
+		connection.setRequestMethod("PUT");
+		OutputStream wr = connection.getOutputStream();
+		wr.write(body, 0, body.length);
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send PUT request to " +url);
+		BufferedReader br = null;
+		if (connection.getResponseCode() >= 100 && connection.getResponseCode() < 400) {
+			br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
+		} else {
+			br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"));
+		}
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from PUT request to endpoint " + url);
+		StringBuilder response = new StringBuilder();
+		String responseLine = null;
+		while ((responseLine = br.readLine()) != null) {
+			response.append(responseLine.trim());
+		}
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
+		return response.toString();
 	}
 	
 	/**
 	 * 
 	 * @param path The path to trigger the corresponding gamification function. Path will be appended to gamificationUrl
 	 * @return Response in String format
+	 * @throws IOException 
 	 */
-	private String gamificationDeleteRequest(String path) {
-		Client client = ClientBuilder.newClient();
-		WebTarget target = client.target(getGamificationUrl());
-		String result = target
-				.path(path)
+	private String gamificationDeleteRequest(String path) throws IOException {
+		URL url = null;
+		try {
+			url = new URL(getGamificationUrl() + path);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
+		}
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		connection.setDoInput(true);
+		connection.setDoOutput(true);
+		connection.setRequestProperty("Authroization", getL2pAuth());
+		connection.setRequestProperty("access-token", getL2pAccessToken());
+		connection.setRequestMethod("DELETE");
+		OutputStream wr = connection.getOutputStream();
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send DELETE request to " +url);
+		BufferedReader br = null;
+		if (connection.getResponseCode() >= 100 && connection.getResponseCode() < 400) {
+			br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
+		} else {
+			br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"));
+		}
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from DELETE request to endpoint " + url);
+		StringBuilder response = new StringBuilder();
+		String responseLine = null;
+		while ((responseLine = br.readLine()) != null) {
+			response.append(responseLine.trim());
+		}
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
+		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
+		return response.toString();
+	}
+	
+	/**
+	 * 
+	 * @return get the current Time in parses it into correct format
+	 */
+	private String getCurrentTimeStamp() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	private void adjustFilterWithTimeStamp() {
+		// TODO Auto-generated method stub
+		String encodedTimeStamp = encodeTimeStamp();
+		this.adjustedFilter = getLrsFilter() + encodedTimeStamp;
+	}
+	
+	private String encodeTimeStamp() {
+		// TODO Auto-generated method stub
+		//encode timestamp like in lrs request required 
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param configId associated with this Listener
+	 * @return timestamp for the configId
+	 */
+	private String getTimeStampFromDB(String configId) {
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target(getConfiguratorUrl());
+		Invocation invocation = target
+				.path("/timestamp/" + configId)
 				.request()
-				.delete(String.class);
-		return result;
+				.header("access-token", getL2pAccessToken())
+				.header("Authorization", getL2pAuth())
+				.buildGet();
+		String response = invocation.invoke(String.class);
+		return response;
+	}
+	
+	/**
+	 * 
+	 * @param configId for which the timestamp has tp be set
+	 */
+	private void writeTimeStampToDB(String configId) {
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target(getConfiguratorUrl());
+		Invocation invocation = target
+				.path("/timestamp/" + configId)
+				.request()
+				.header("access-token", getL2pAccessToken())
+				.header("Authorization", getL2pAuth())
+				.buildPost(Entity.entity(getTimeStamp(), MediaType.TEXT_PLAIN));
 	}
 
 	/**
@@ -760,7 +983,8 @@ public class LrsHandler{
 	 * @return the l2pAccessToken
 	 */
 	public String getL2pAccessToken() {
-		return l2pAccessToken;
+		//TODO
+		return "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoZTJ6NVRzbEM1M3VPQXZxNmFWckplT2I0ZUx5TUxUam9IT3dIdTBiRmFJIn0.eyJleHAiOjE2MzUzNDYxMzgsImlhdCI6MTYzNTM0MjUzOCwiYXV0aF90aW1lIjoxNjM1MzQyNTE5LCJqdGkiOiI1YmMyNTViNi00YTQ5LTRlMzItODA0ZC02Yzc3ODRlNTNkN2IiLCJpc3MiOiJodHRwczovL2FwaS5sZWFybmluZy1sYXllcnMuZXUvYXV0aC9yZWFsbXMvbWFpbiIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI5OTMzLTlkM2RhYjUxYWE5MCIsInR5cCI6IkJlYXJlciIsImF6cCI6ImJkZGE3Mzk2LTNmNmQtNGQ4My1hYzIxLTY1YjQwNjlkMGVhYiIsIm5vbmNlIjoiNjM2ZTdhZjVkZmJjNGM5MzlkMmUwYzA1MzAxMDIzNjUiLCJzZXNzaW9uX3N0YXRlIjoiYWUwNTBhYzYtZjg2Mi00Y2I2LWJkYTYtZDM1NDJlMjk0NThmIiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vMTM3LjIyNi4yMzIuMTc1OjMyMDEwIiwiaHR0cDovL3RlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjMxMDEwIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwczovL2ZpbGVzLnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6OTA5OCIsImh0dHBzOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODQiLCJodHRwczovL21vbml0b3IudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODEiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHBzOi8vZ2l0LnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovLzEyNy4wLjAuMTo4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODAiLCJodHRwczovL2NhZS1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODAiLCJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJodHRwOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZSIsImh0dHBzOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZTo5MDk4IiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MSIsImh0dHBzOi8vbGFzMnBlZXIudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODIiLCJodHRwczovL3NiZi1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwic2lkIjoiYWUwNTBhYzYtZjg2Mi00Y2I2LWJkYTYtZDM1NDJlMjk0NThmIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJNYXJjIEJlbHNjaCIsInByZWZlcnJlZF91c2VybmFtZSI6Im1iZWxzY2giLCJnaXZlbl9uYW1lIjoiTWFyYyIsImZhbWlseV9uYW1lIjoiQmVsc2NoIiwiZW1haWwiOiJtYXJjLmJlbHNjaEByd3RoLWFhY2hlbi5kZSJ9.LMjOFlT-3JWqDPbSymEQKX9sROvosWIAPMRufTocRGy-0DQAuIJS41iSYPO3jyRC2i9HsyGdShoJy9ISocb4F3BiWUQQleuqXQ9zGAVP9i26j9fTH4xJRR8YWIIQp57-f8tx63dA85J9IAJZvaNkLGDcPzq2e5bbCOlCbRyB3KrirA3gtnwspwFF8yl4YHf93bQsugkAtdUACU-Ouh65_dDdTsX7nDmv2PsXC-qOWc52DPmPydOC_PEzP00hI5AkgUnmNLx6YqBT5Yif3jrMUkkzwlzBQDoQGGPIbNOGwosENlDbuaZ7jdqrpexXTWys7fGh6foU7zAApHKSmxqUFw";
 	}
 
 	/**
@@ -768,5 +992,19 @@ public class LrsHandler{
 	 */
 	public void setL2pAccessToken(String l2pAccessToken) {
 		this.l2pAccessToken = l2pAccessToken;
+	}
+
+	/**
+	 * @return the timeStamp
+	 */
+	public String getTimeStamp() {
+		return timeStamp;
+	}
+
+	/**
+	 * @param timeStamp the timeStamp to set
+	 */
+	public void setTimeStamp(String timeStamp) {
+		this.timeStamp = timeStamp;
 	}
 }
