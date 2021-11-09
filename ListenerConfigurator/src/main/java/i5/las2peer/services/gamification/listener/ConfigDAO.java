@@ -712,6 +712,10 @@ public class ConfigDAO {
 	}
 
 	public void setTime(Connection conn, String configId, String timestamp) throws SQLException {
+		stmt = conn.prepareStatement("DELETE FROM listener.times WHERE config_id = ?");
+		stmt.setString(1, configId);
+		stmt.executeUpdate();
+		
 		stmt = conn
 				.prepareStatement("INSERT INTO listener.times (config_id, times) VALUES (?, ?)");
 		stmt.setString(1, configId);

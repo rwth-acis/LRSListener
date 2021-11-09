@@ -72,7 +72,6 @@ public class LRSListener extends RESTService {
 			properties.load(new FileInputStream("./etc/i5.las2peer.services.gamification.listener.LRSListener.properties"));
 			gamificationUrl = properties.getProperty("gamificationUrl");
 			lrsUrl = properties.getProperty("lrsUrl");
-			lrsFilter = properties.getProperty("lrsFilter");
 			configuratorUrl = properties.getProperty("configuratorUrl");
 			configId = properties.getProperty("configId");
 			lrsAuth = properties.getProperty("lrsAuth");
@@ -82,7 +81,7 @@ public class LRSListener extends RESTService {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		handler = new LrsHandler(gamificationUrl, lrsUrl, lrsFilter, configuratorUrl, configId, lrsAuth, l2pAuth, l2pAccessToken);
+		handler = new LrsHandler(gamificationUrl, lrsUrl, configuratorUrl, configId, lrsAuth, l2pAuth, l2pAccessToken);
 		worker = new LrsWorker(handler);
 		thread = new Thread(worker);
 		thread.setDaemon(true);

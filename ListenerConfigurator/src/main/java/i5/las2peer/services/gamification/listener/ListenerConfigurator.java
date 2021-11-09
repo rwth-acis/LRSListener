@@ -3623,6 +3623,11 @@ public class ListenerConfigurator extends RESTService {
 			}
 			
 			String timestamp = configAccess.getTimeWithId(conn, configId);
+			if (timestamp == null || timestamp.equals("")) {
+				objResponse.put("message", "No Timestamp for this configuration found");
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
 			
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_26, "" + name, true);
@@ -3702,6 +3707,11 @@ public class ListenerConfigurator extends RESTService {
 						.build();
 			}
 			
+			if (timestamp == null || timestamp.equals("")) {
+				objResponse.put("message", "Cannot set timestamp. No timestamp send");
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
+						.build();
+			}
 			configAccess.setTime(conn, configId, timestamp);
 			
 			Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_17, "" + randomLong, true);

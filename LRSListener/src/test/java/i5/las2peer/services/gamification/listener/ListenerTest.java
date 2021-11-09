@@ -155,7 +155,7 @@ public class ListenerTest {
 		}
 	}
 	
-	
+	@Test
 	public void testA2_testMapping(){
 		System.out.println("Test --- Create New Configuration");
 		try
@@ -175,7 +175,7 @@ public class ListenerTest {
 		}
 	}
 	
-	
+	@Test
 	public void testA3_testNotify(){
 		System.out.println("Test --- Create New Configuration");
 		try
@@ -191,75 +191,6 @@ public class ListenerTest {
 					.get(Mapping.class);
 			JSONObject mapping = new JSONObject(response);
 			ClientResponse result = c1.sendRequest("POST", mainPath+ "/notify", mapping.toString(), "application/json", "*/*", headers);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail("Exception: " + e);
-			System.exit(0);
-		}
-	}
-	
-	@Test
-	public void testA4_testGamification(){
-		System.out.println("Test --- Create New Configuration");
-			String result = null;
-			String gameId = "testGame";
-			try {
-//				String game = retriveGameElement("/gamification/configurator/game/"+ "testConfig" + "/" + gameId);
-//				JSONObject jsonGame = new JSONObject(game);
-				Form form = new Form();
-				form.param("gameid", "testGame76");
-				form.param("gamedesc", "someDesc");
-				form.param("commtype", "commType");
-				
-//				MultiPart multi = new FormDataMultiPart()
-//						.bodyPart()
-				String boundary =  "--32532twtfaweafwsgfaegfawegf4"; 
-				
-				MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-				builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-				builder.setBoundary(boundary);
-				
-
-//				builder.addPart("gameid", new StringBody(jsonGame.getString("gameId"), ContentType.TEXT_PLAIN));
-//				builder.addPart("gamedesc", new StringBody(jsonGame.getString("description"), ContentType.TEXT_PLAIN));
-//				builder.addPart("commtype", new StringBody(jsonGame.getString("communityType"), ContentType.TEXT_PLAIN));
-				
-				builder.addPart("gameid", new StringBody("testGame76", ContentType.TEXT_PLAIN));
-				builder.addPart("gamedesc", new StringBody("description", ContentType.TEXT_PLAIN));
-				builder.addPart("commtype", new StringBody("communityType", ContentType.TEXT_PLAIN));
-				
-				HttpEntity formData = builder.build();
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				formData.writeTo(out);
-				String output = out.toString();
-				
-//				
-//				Client client = ClientBuilder.newClient();
-//				WebTarget target = client.target("http://localhost:8080/gamification/listener");
-//				Invocation invocation = target
-//						.path("/data")
-//						.request()
-//						.header("Content-Length", output.getBytes().length)
-//						.header("Content-Type", "multipart/form-data; boundary="+boundary)
-//						.header("access-token", "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoZTJ6NVRzbEM1M3VPQXZxNmFWckplT2I0ZUx5TUxUam9IT3dIdTBiRmFJIn0.eyJleHAiOjE2MzUzNDYxMzgsImlhdCI6MTYzNTM0MjUzOCwiYXV0aF90aW1lIjoxNjM1MzQyNTE5LCJqdGkiOiI1YmMyNTViNi00YTQ5LTRlMzItODA0ZC02Yzc3ODRlNTNkN2IiLCJpc3MiOiJodHRwczovL2FwaS5sZWFybmluZy1sYXllcnMuZXUvYXV0aC9yZWFsbXMvbWFpbiIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI5OTMzLTlkM2RhYjUxYWE5MCIsInR5cCI6IkJlYXJlciIsImF6cCI6ImJkZGE3Mzk2LTNmNmQtNGQ4My1hYzIxLTY1YjQwNjlkMGVhYiIsIm5vbmNlIjoiNjM2ZTdhZjVkZmJjNGM5MzlkMmUwYzA1MzAxMDIzNjUiLCJzZXNzaW9uX3N0YXRlIjoiYWUwNTBhYzYtZjg2Mi00Y2I2LWJkYTYtZDM1NDJlMjk0NThmIiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vMTM3LjIyNi4yMzIuMTc1OjMyMDEwIiwiaHR0cDovL3RlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjMxMDEwIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwczovL2ZpbGVzLnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6OTA5OCIsImh0dHBzOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODQiLCJodHRwczovL21vbml0b3IudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODEiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHBzOi8vZ2l0LnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovLzEyNy4wLjAuMTo4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODAiLCJodHRwczovL2NhZS1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODAiLCJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJodHRwOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZSIsImh0dHBzOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZTo5MDk4IiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MSIsImh0dHBzOi8vbGFzMnBlZXIudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODIiLCJodHRwczovL3NiZi1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwic2lkIjoiYWUwNTBhYzYtZjg2Mi00Y2I2LWJkYTYtZDM1NDJlMjk0NThmIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJNYXJjIEJlbHNjaCIsInByZWZlcnJlZF91c2VybmFtZSI6Im1iZWxzY2giLCJnaXZlbl9uYW1lIjoiTWFyYyIsImZhbWlseV9uYW1lIjoiQmVsc2NoIiwiZW1haWwiOiJtYXJjLmJlbHNjaEByd3RoLWFhY2hlbi5kZSJ9.LMjOFlT-3JWqDPbSymEQKX9sROvosWIAPMRufTocRGy-0DQAuIJS41iSYPO3jyRC2i9HsyGdShoJy9ISocb4F3BiWUQQleuqXQ9zGAVP9i26j9fTH4xJRR8YWIIQp57-f8tx63dA85J9IAJZvaNkLGDcPzq2e5bbCOlCbRyB3KrirA3gtnwspwFF8yl4YHf93bQsugkAtdUACU-Ouh65_dDdTsX7nDmv2PsXC-qOWc52DPmPydOC_PEzP00hI5AkgUnmNLx6YqBT5Yif3jrMUkkzwlzBQDoQGGPIbNOGwosENlDbuaZ7jdqrpexXTWys7fGh6foU7zAApHKSmxqUFw")
-//						.header("Authorization", "Basic T0lEQ19TVUItOTkzMy05ZDNkYWI1MWFhOTA6OTkzMy05ZDNkYWI1MWFhOTA=")
-//						.buildPost(Entity.entity(output.getBytes(), MediaType.MULTIPART_FORM_DATA));
-//				Response response = invocation.invoke();		
-			
-			
-			
-			
-			
-			
-			
-			ClientResponse result2 = c1.sendRequest("GET", mainPath +  "/gami", "", "text/plain", "*/*", headers);
-			System.out.println(result2.getResponse());
-			if(result2.getHttpCode()==HttpURLConnection.HTTP_OK){
-				assertEquals(HttpURLConnection.HTTP_OK,result2.getHttpCode());
-			}
-			else{
-				assertEquals(HttpURLConnection.HTTP_CREATED,result2.getHttpCode());
-			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Exception: " + e);
