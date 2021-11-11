@@ -308,7 +308,8 @@ CREATE TABLE listener.times
 (
   config_id character varying(20) NOT NULL,
   times character varying(20) NOT NULL,
-  CONSTRAINT config_streak_pkey PRIMARY KEY (config_id, times),
+  times2 character varying(20) NOT NULL,
+  CONSTRAINT config_times_pkey PRIMARY KEY (config_id),
   CONSTRAINT config_id FOREIGN KEY (config_id)
     REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE
 )
@@ -317,3 +318,15 @@ WITH (
 );
 ALTER TABLE listener.times OWNER TO configurator;
 
+CREATE TABLE listener.observers
+(
+  config_id character varying(20) NOT NULL,
+  observers character varying(50) NOT NULL,
+  CONSTRAINT config_observers_pkey PRIMARY KEY (config_id, observers),
+  CONSTRAINT config_id FOREIGN KEY (config_id)
+    REFERENCES model.config_data (config_id) ON UPDATE CASCADE ON DELETE CASCADE
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE listener.observers OWNER TO configurator;

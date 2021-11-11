@@ -6,15 +6,19 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.ws.rs.client.Client;
@@ -45,34 +49,154 @@ public class LrsHandler{
 	private String gamificationUrl;
 	private String lrsUrl;
 	private String lrsFilter;
+	private String listenerUrl;
 	private String configuratorUrl;
 	private String configId;
 	private String lrsAuth;
 	private String l2pAuth;
 	private String l2pAccessToken;
 	private String timeStamp;
-
-
+	private String lastStatementTimeStamp;
 	
-	public LrsHandler(String gamificationUrl, String lrsUrl, String configuratorUrl, String configId, String lrsAuth, String l2pAuth, String l2pAccessToken) {
+	public LrsHandler(String gamificationUrl, String lrsUrl, String listenerUrl, String configuratorUrl, String configId, String lrsAuth, String l2pAuth, String l2pAccessToken) {
 		this.gamificationUrl = gamificationUrl;
 		this.lrsUrl = lrsUrl;
+		this.listenerUrl = listenerUrl;
 		this.configuratorUrl = configuratorUrl;
 		this.configId = configId;
 		this.lrsAuth = lrsAuth;
 		this.l2pAuth = l2pAuth;
 		this.l2pAccessToken = l2pAccessToken;
-		this.lrsFilter = initFilter();
+		initTimeStamps();
+		initFilter();
 		Mapping mapping = null;
 		try {
 			mapping = getMappingFromConfigurator(getConfigId());
 			setMap(mapping);
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Received and set mapping correctly");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Received and set mapping correctly");
 		} catch (Exception e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting  mapping");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting  mapping");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
 		}
+		try {
+			registerAsObserver(getConfigId());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * initializes both timestamps, by retrieving from DB
+	 * In case of failure the current time is taken
+	 */
+	private void initTimeStamps() {
+		try {
+			JSONObject timeStamps = new JSONObject(getTimeStampFromDB(this.configId));
+			String timeStamp = timeStamps.getString("timestamp");
+			String lastStatementTimeStamp = timeStamps.getString("laststatement");
+			setTimeStamp(timeStamp);
+			setLastStatementTimeStamp(lastStatementTimeStamp);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Received and set timestamp correctly");
+		} catch (Exception e) {
+			String currentTime = getCurrentTime();
+			setTimeStamp(currentTime);
+			setLastStatementTimeStamp("00:00:00.000");
+			e.printStackTrace();
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting timestamp. Using current time " + timeStamp);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
+		}
+	}
+	
+	/**
+	 * 
+	 * @param configId associated with this Listener
+	 * @return timestamp for the configId
+	 */
+	private String getTimeStampFromDB(String configId) {
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target(getConfiguratorUrl());
+		Invocation invocation = target
+				.path("/timestamp/" + configId)
+				.request()
+				.header("access-token", getL2pAccessToken())
+				.header("Authorization", getL2pAuth())
+				.buildGet();
+		String response = invocation.invoke(String.class);
+		return response;
+	}
+	
+	/**
+	 * 
+	 * @param configId for which the timestamp has tp be set
+	 */
+	private void writeTimeStampToDB(String configId) {
+		JSONObject timeStamps = new JSONObject();
+		timeStamps.put("timestamp", getTimeStamp());
+		timeStamps.put("laststatement", getLastStatementTimeStamp());
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target(getConfiguratorUrl());
+		Invocation invocation = target
+				.path("/timestamp/" + configId)
+				.request()
+				.header("access-token", getL2pAccessToken())
+				.header("Authorization", getL2pAuth())
+				.buildPost(Entity.entity(timeStamps, MediaType.TEXT_PLAIN));
+		String result = invocation.invoke(String.class);
+	}
+	
+	/**
+	 * 
+	 * @return get the current Time in parses it into correct format
+	 */
+	private String getCurrentTime() {
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+		Date date = new Date();
+		String current = formatter.format(date);
+		return current;
+	}
+	
+	/**
+	 * filtering just by timestamp, sorting is time decsending by LRS default
+	 */
+	private void initFilter() {
+		adjustFilterWithTimeStamp();
+	}
+	
+	private void adjustFilterWithTimeStamp() {
+		setLrsFilter(encodeTimeStamp());
+	}
+	
+	/**
+	 * 
+	 * @return URL encoded LRS Filter query
+	 */
+	private String encodeTimeStamp() {
+		String filter = "?filter=%7B%22%24and%22%3A%5B%7B%22timestamp%22%3A%7B%22%24gte%22%3A%7B%22%24dte%22%3A%22" + getTimeStamp() + "T00%3A00%2B01%3A00%22%7D%7D%2C%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22timestamp%5C%22%5D%7D%22%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D";
+		return filter;
+	}
+
+	/**
+	 * Key in JSON object must be "url", value is the url to be notified on
+	 * @param configId the config to register to
+	 * @throws IOException
+	 */
+	private void registerAsObserver(String configId) throws IOException {
+		JSONObject body = new JSONObject();
+		body.put("url", getListenerUrl() + "/gamification/listener/notify");
+		String output = body.toString();
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target(getConfiguratorUrl());
+		Invocation invocation = target
+				.path("/register/" + configId)
+				.request()
+				.header("access-token", getL2pAccessToken())
+				.header("Authorization", getL2pAuth())
+				.buildPost(Entity.entity(output, MediaType.TEXT_PLAIN));
+		String response = invocation.invoke(String.class);
 	}
 
 	/**
@@ -89,24 +213,27 @@ public class LrsHandler{
 				for (LrsStatement statement : statements) {
 					String result = null;
 					try {
-						result = executeGamification(statement);
-						setTimeStamp(getCurrentTime());
-						adjustFilterWithTimeStamp();
-						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Statement executed successfully " + statement.toString());
-						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "Result of executed statement " + result);
+						if(compareStatementTimestamp(statement.getTimeStamp())) {
+							result = executeGamification(statement);
+							setTimeStamp(getCurrentTime());
+							setLastStatementTimeStamp(statement.getTimeStamp());
+							adjustFilterWithTimeStamp();
+							//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Statement executed successfully " + statement.toString());
+							//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, "Result of executed statement " + result);
+						}
 					}
 					catch (Exception e) {
 						e.printStackTrace();
-						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10, "Statement executed unsuccessfully " + statement.toString());
-						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10, "The following error occured" + e.getMessage());
-						Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, "Result of executed statement " + result);
+						//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10, "Statement executed unsuccessfully " + statement.toString());
+						//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10, "The following error occured" + e.getMessage());
+						//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, "Result of executed statement " + result);
 					}
 				}
 			}
 			catch (Exception e) {
 				e.printStackTrace();
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error during operation");
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error during operation");
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
 			}
 			finally {
 				writeTimeStampToDB(getConfigId());
@@ -135,17 +262,36 @@ public class LrsHandler{
 	/**
 	 * 
 	 * @return List of LrsStatements for preset filter set in target.path
+	 * @throws IOException 
 	 */
-	private List<LrsStatement> retriveStatements() {
-		ClientConfig clientConfig = new ClientConfig();
-		Client client = ClientBuilder.newClient(clientConfig);
-		WebTarget target = client.target(getLrsUrl());
-		String response = target
-				.path(getLrsFilter())
-				.request()
-				.header("Authorization", getLrsAuth())
-				.get(String.class)
-				.toString();
+	private List<LrsStatement> retriveStatements() throws IOException {
+//		ClientConfig clientConfig = new ClientConfig();
+//		Client client = ClientBuilder.newClient(clientConfig);
+//		WebTarget target = client.target(getLrsUrl());
+//		String response = target
+//				.path(getLrsFilter())
+//				.request()
+//				.header("Authorization", getLrsAuth())
+//				.get(String.class)
+//				.toString();
+		URL url = new URL(getLrsUrl()+getLrsFilter());
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("GET");
+		conn.setRequestProperty("Authorization", getLrsAuth());
+		int code =  conn.getResponseCode();
+		BufferedReader br = null;
+		if (code >= 100 && code < 400) {
+			br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+		} else {
+			br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"));
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		String responseLine = null;
+		while ((responseLine = br.readLine()) != null) {
+			sb.append(responseLine.trim());
+		}
+		String response = sb.toString();
 		List<LrsStatement> statements = null;
 		if (response!= null) {
 			statements = parseToList(response);
@@ -162,18 +308,48 @@ public class LrsHandler{
 		List<LrsStatement> statements = new ArrayList<>();
 		JSONObject object = new JSONObject(response);
 		JSONArray array = object.getJSONArray("edges");
-		for (int i = 0; i < array.length(); i++) {
-			JSONObject statement = array.getJSONObject(i).getJSONObject("node").getJSONObject("statement");
-			LrsStatement stmt = new LrsStatement();
-			stmt.setActor(statement.getJSONObject("actor").getString("name"));
-			stmt.setVerb(statement.getJSONObject("verb").getJSONObject("display").getString("en-US"));
-			stmt.setWhat(statement.getJSONObject("object").getJSONObject("definition").getJSONObject("name")
-				.getString("en-US"));
-			//stmt.setTimeStamp(statement.getString("timestamp"));
-			stmt.setTimeStamp(null);
-			statements.add(stmt);
+		//also sort from eldest to newest
+		for (int i = array.length()-1; i >= 0; i--) {
+			try {
+				JSONObject statement = array.getJSONObject(i).getJSONObject("node").getJSONObject("statement");
+				LrsStatement stmt = new LrsStatement();
+				stmt.setActor(statement.getJSONObject("actor").getJSONObject("account").getString("name"));
+				stmt.setVerb(statement.getJSONObject("verb").getJSONObject("display").getString("en-US"));
+				stmt.setWhat(statement.getJSONObject("object").getJSONObject("definition").getJSONObject("name")
+					.getString("en-US"));
+				stmt.setTimeStamp(statement.getString("timestamp").substring(11, 23));
+				statements.add(stmt);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return statements;
+	}
+	
+	/**
+	 * 
+	 * @param statementTimeStamp
+	 * @return true, when statement.timestamp is newer, than lastTimeStamp
+	 * @throws ParseException 
+	 */
+	private boolean compareStatementTimestamp(String statementTimeStamp) throws ParseException {
+			Date lastChecked = new SimpleDateFormat("HH:mm:ss.SSS", Locale.ENGLISH)
+			        .parse(getLastStatementTimeStamp());
+			Date statementTime = new SimpleDateFormat("HH:mm:ss.SSS", Locale.ENGLISH)
+            .parse(statementTimeStamp);
+			if (lastChecked.compareTo(statementTime) > 0) {
+				return false;
+			}
+			else if (lastChecked.compareTo(statementTime) < 0) {
+				return true;
+			}
+			else if (lastChecked.compareTo(statementTime) == 0) {
+				return true;
+			}
+			else {
+				return false;
+			}
 	}
 	
 	/**
@@ -227,7 +403,7 @@ public class LrsHandler{
 				return executeBadge(statement, badge.getGameId(), badge.getBadgeId());
 			}
 		}
-		throw new IllegalStateException("Could not execute " + statement.getWhat() + ". No such activity in configuration " + getConfigId());
+		return "Unsupported";
 	}
 	
 	/**
@@ -247,15 +423,15 @@ public class LrsHandler{
 			byte[] output = new byte[0];
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/streaks/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/streaks/" + gameId + "/" + streakId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/streaks/" + gameId + "/" + streakId);
 				return result;
 			default:
@@ -263,14 +439,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -307,15 +483,15 @@ public class LrsHandler{
 			
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/quests/" + gameId, output, "application/json");
 				return result;
 			case "updated":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/quests/" + gameId + "/" + questId, output, "application/json");
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/quests/" + gameId + "/" + questId);
 				return result;
 			default:
@@ -323,14 +499,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -371,15 +547,15 @@ public class LrsHandler{
 			
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/actions/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/actions/" + gameId + "/" + actionId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/actions/" + gameId + "/" + actionId);
 				return result;
 			default:
@@ -387,14 +563,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -435,15 +611,15 @@ public class LrsHandler{
 			
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/levels/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/levels/" + gameId + "/" + levelNumber, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/levels/" + gameId + "/" + levelNumber);
 				return result;
 			default:
@@ -451,14 +627,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -497,15 +673,15 @@ public class LrsHandler{
 			
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/achievements/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/achievements/" + gameId + "/" + achievementId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/achievements/" + gameId + "/" + achievementId);
 				return result;
 			default:
@@ -513,14 +689,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -556,16 +732,16 @@ public class LrsHandler{
 
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/games/data", output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
 				//This should never happen
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/games/data/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/games/data/" + gameId);
 				return result;
 			default:
@@ -573,14 +749,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -622,15 +798,15 @@ public class LrsHandler{
 			
 			switch (statement.getVerb()) {
 			case "created":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPostRequest("/badges/" + gameId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "updated":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationPutRequest("/badges/" + gameId + "/" + badgeId, output, "multipart/form-data; boundary="+boundary);
 				return result;
 			case "deleted":
-				Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
+				//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16, statement.getActor() + " " + statement.getVerb() + " " + statement.getWhat());
 				result = gamificationDeleteRequest("/badges/" + gameId + "/" + badgeId);
 				return result;
 			default:
@@ -638,14 +814,14 @@ public class LrsHandler{
 			}
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_18, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_19, "Verb " + statement.getVerb() + "is not suported for activity " + statement.getWhat());
 			return result;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Error when triggering Gamification Framework funtions");
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_12, e.getMessage());
 			return result;
 		}
 	}
@@ -679,10 +855,10 @@ public class LrsHandler{
 		URL url = null;
 		try {
 			url = new URL(getGamificationUrl() + path);
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
 		}
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setDoInput(true);
@@ -693,21 +869,21 @@ public class LrsHandler{
 		connection.setRequestMethod("POST");
 		OutputStream wr = connection.getOutputStream();
 		wr.write(body, 0, body.length);
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send POST request to " +url);
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send POST request to " +url);
 		BufferedReader br = null;
 		if (connection.getResponseCode() >= 100 && connection.getResponseCode() < 400) {
 			br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
 		} else {
 			br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"));
 		}
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from POST request to endpoint " + url);
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from POST request to endpoint " + url);
 		StringBuilder response = new StringBuilder();
 		String responseLine = null;
 		while ((responseLine = br.readLine()) != null) {
 			response.append(responseLine.trim());
 		}
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
 		return response.toString();
 	}
 	
@@ -723,10 +899,10 @@ public class LrsHandler{
 		URL url = null;
 		try {
 			url = new URL(getGamificationUrl() + path);
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
 		}
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setDoInput(true);
@@ -737,21 +913,21 @@ public class LrsHandler{
 		connection.setRequestMethod("PUT");
 		OutputStream wr = connection.getOutputStream();
 		wr.write(body, 0, body.length);
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send PUT request to " +url);
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send PUT request to " +url);
 		BufferedReader br = null;
 		if (connection.getResponseCode() >= 100 && connection.getResponseCode() < 400) {
 			br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
 		} else {
 			br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"));
 		}
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from PUT request to endpoint " + url);
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from PUT request to endpoint " + url);
 		StringBuilder response = new StringBuilder();
 		String responseLine = null;
 		while ((responseLine = br.readLine()) != null) {
 			response.append(responseLine.trim());
 		}
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
 		return response.toString();
 	}
 	
@@ -765,10 +941,10 @@ public class LrsHandler{
 		URL url = null;
 		try {
 			url = new URL(getGamificationUrl() + path);
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Sending to " + url);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
+			//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11, "Could not send, because of malformed url " + url);
 		}
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setDoInput(true);
@@ -777,96 +953,22 @@ public class LrsHandler{
 		connection.setRequestProperty("access-token", getL2pAccessToken());
 		connection.setRequestMethod("DELETE");
 		OutputStream wr = connection.getOutputStream();
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send DELETE request to " +url);
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Send DELETE request to " +url);
 		BufferedReader br = null;
 		if (connection.getResponseCode() >= 100 && connection.getResponseCode() < 400) {
 			br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"));
 		} else {
 			br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"));
 		}
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from DELETE request to endpoint " + url);
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Reading response from DELETE request to endpoint " + url);
 		StringBuilder response = new StringBuilder();
 		String responseLine = null;
 		while ((responseLine = br.readLine()) != null) {
 			response.append(responseLine.trim());
 		}
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
-		Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response code is " + connection.getResponseCode());
+		//Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Response is " + response.toString());
 		return response.toString();
-	}
-	
-	/**
-	 * 
-	 * @return an URL encoded Filter, The filter is just a timestamp
-	 */
-	private String initFilter() {
-		try {
-			this.timeStamp = getTimeStampFromDB(this.configId);
-			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14, "Received and set timestamp correctly");
-		} catch (Exception e) {
-			this.timeStamp = getCurrentTime();
-			e.printStackTrace();
-//			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_16, "Error when setting timestamp. Using current time " + timeStamp);
-//			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17, e.getMessage());
-			System.out.println("Hello");
-		}
-		return encodeTimeStamp();
-	}
-	
-	/**
-	 * 
-	 * @return get the current Time in parses it into correct format
-	 */
-	private String getCurrentTime() {
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-		Date date = new Date();
-		String current = formatter.format(date);
-		return current;
-	}
-	
-	private void adjustFilterWithTimeStamp() {
-		setLrsFilter(encodeTimeStamp());
-	}
-	
-	private String encodeTimeStamp() {
-		String filter = "filter=%7B%22%24and%22%3A%5B%7B%22timestamp%22%3A%7B%22%24lt%22%3A%7B%22%24dte%22%3A%22" + getTimeStamp() + "T00%3A00%2B01%3A00%22%7D%7D%2C%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22timestamp%5C%22%5D%7D%22%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D";
-		return filter;
-	}
-
-	/**
-	 * 
-	 * @param configId associated with this Listener
-	 * @return timestamp for the configId
-	 */
-	private String getTimeStampFromDB(String configId) {
-		ClientConfig clientConfig = new ClientConfig();
-		Client client = ClientBuilder.newClient(clientConfig);
-		WebTarget target = client.target(getConfiguratorUrl());
-		Invocation invocation = target
-				.path("/timestamp/" + configId)
-				.request()
-				.header("access-token", getL2pAccessToken())
-				.header("Authorization", getL2pAuth())
-				.buildGet();
-		String response = invocation.invoke(String.class);
-		return response;
-	}
-	
-	/**
-	 * 
-	 * @param configId for which the timestamp has tp be set
-	 */
-	private void writeTimeStampToDB(String configId) {
-		ClientConfig clientConfig = new ClientConfig();
-		Client client = ClientBuilder.newClient(clientConfig);
-		WebTarget target = client.target(getConfiguratorUrl());
-		Invocation invocation = target
-				.path("/timestamp/" + configId)
-				.request()
-				.header("access-token", getL2pAccessToken())
-				.header("Authorization", getL2pAuth())
-				.buildPost(Entity.entity(getTimeStamp(), MediaType.TEXT_PLAIN));
-		invocation.invoke();
 	}
 
 	/**
@@ -934,6 +1036,20 @@ public class LrsHandler{
 	}
 
 	/**
+	 * @return the listenerUrl
+	 */
+	public String getListenerUrl() {
+		return listenerUrl;
+	}
+
+	/**
+	 * @param listenerUrl the listenerUrl to set
+	 */
+	public void setListenerUrl(String listenerUrl) {
+		this.listenerUrl = listenerUrl;
+	}
+
+	/**
 	 * @return the configuratorUrl
 	 */
 	public String getConfiguratorUrl() {
@@ -993,8 +1109,7 @@ public class LrsHandler{
 	 * @return the l2pAccessToken
 	 */
 	public String getL2pAccessToken() {
-		//TODO
-		return "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoZTJ6NVRzbEM1M3VPQXZxNmFWckplT2I0ZUx5TUxUam9IT3dIdTBiRmFJIn0.eyJleHAiOjE2MzY0OTUyNTksImlhdCI6MTYzNjQ5MTY1OSwiYXV0aF90aW1lIjoxNjM2NDkxNjQ2LCJqdGkiOiI4OTNlMTA2NC1jMDA4LTQwM2QtYWRkMC1kMmMxYTI4YTJkMTgiLCJpc3MiOiJodHRwczovL2FwaS5sZWFybmluZy1sYXllcnMuZXUvYXV0aC9yZWFsbXMvbWFpbiIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI5OTMzLTlkM2RhYjUxYWE5MCIsInR5cCI6IkJlYXJlciIsImF6cCI6ImJkZGE3Mzk2LTNmNmQtNGQ4My1hYzIxLTY1YjQwNjlkMGVhYiIsIm5vbmNlIjoiY2I1ZGZjZmVkNmE3NGRiMjk2OTRjYjQ4MjgxZGFlYTciLCJzZXNzaW9uX3N0YXRlIjoiMmRiY2M0ZDgtMGVlYy00NmFmLTgxZTMtZmY4NWM2MjZhYjM1IiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vMTM3LjIyNi4yMzIuMTc1OjMyMDEwIiwiaHR0cDovL3RlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjMxMDEwIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwczovL2ZpbGVzLnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6OTA5OCIsImh0dHBzOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODQiLCJodHRwczovL21vbml0b3IudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODEiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHBzOi8vZ2l0LnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovLzEyNy4wLjAuMTo4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODAiLCJodHRwczovL2NhZS1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODAiLCJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJodHRwOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZSIsImh0dHBzOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZTo5MDk4IiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MSIsImh0dHBzOi8vbGFzMnBlZXIudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODIiLCJodHRwczovL3NiZi1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwic2lkIjoiMmRiY2M0ZDgtMGVlYy00NmFmLTgxZTMtZmY4NWM2MjZhYjM1IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJNYXJjIEJlbHNjaCIsInByZWZlcnJlZF91c2VybmFtZSI6Im1iZWxzY2giLCJnaXZlbl9uYW1lIjoiTWFyYyIsImZhbWlseV9uYW1lIjoiQmVsc2NoIiwiZW1haWwiOiJtYXJjLmJlbHNjaEByd3RoLWFhY2hlbi5kZSJ9.JNnJWVyhHm2xUrH3-m_84vj5QXuGVPdFa74aEFm_CuPg2dCXhxTHz5bwU9oYZKeMXluQbdXbQC1SoBpnNPz3ckHRSn3Al0Q9CzYlAwNZrnsTH8F28l2QCicfEpcYq0Y8eny1OPOSaQ6mNic84CXM3aQ5oEi9FI28OXcGBQ4Tl8ke_VchbgoQYb42CXqrma0oWxIzfSParwX2avHL1h6myYCFtfpnpkISKX9fOBQKtB4MjnkTvS1-_e5TIaAlzz-VCZINrV06yR0163jB8mSXU_Ehy96zzARigil7vujML1IWPBNAxj6VM7InE1MbQxlXthw-wQtOH_HGBgp7OktsNw";
+		return l2pAccessToken;
 	}
 
 	/**
@@ -1017,4 +1132,20 @@ public class LrsHandler{
 	public void setTimeStamp(String timeStamp) {
 		this.timeStamp = timeStamp;
 	}
+
+	/**
+	 * @return the lastStatementTimeStamp
+	 */
+	public String getLastStatementTimeStamp() {
+		return lastStatementTimeStamp;
+	}
+
+	/**
+	 * @param lastStatementTimeStamp the lastStatementTimeStamp to set
+	 */
+	public void setLastStatementTimeStamp(String lastStatementTimeStamp) {
+		this.lastStatementTimeStamp = lastStatementTimeStamp;
+	}
+
+	
 }

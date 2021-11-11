@@ -135,7 +135,7 @@ public class ListenerTest {
 		}
 	}
 	
-	
+	@Test
 	public void testA1_testStatements(){
 		System.out.println("Test --- Create New Configuration");
 		try

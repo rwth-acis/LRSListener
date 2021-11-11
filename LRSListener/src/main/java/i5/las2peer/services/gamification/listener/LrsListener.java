@@ -16,11 +16,13 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
@@ -58,7 +60,7 @@ public class LRSListener extends RESTService {
 	private Thread thread;
 	private String gamificationUrl;
 	private String lrsUrl;
-	private String lrsFilter;
+	private String listenerUrl;
 	private String configuratorUrl;
 	private String configId;
 	private String lrsAuth;
@@ -72,6 +74,7 @@ public class LRSListener extends RESTService {
 			properties.load(new FileInputStream("./etc/i5.las2peer.services.gamification.listener.LRSListener.properties"));
 			gamificationUrl = properties.getProperty("gamificationUrl");
 			lrsUrl = properties.getProperty("lrsUrl");
+			listenerUrl = properties.getProperty("listenerUrl");
 			configuratorUrl = properties.getProperty("configuratorUrl");
 			configId = properties.getProperty("configId");
 			lrsAuth = properties.getProperty("lrsAuth");
@@ -81,11 +84,11 @@ public class LRSListener extends RESTService {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		handler = new LrsHandler(gamificationUrl, lrsUrl, configuratorUrl, configId, lrsAuth, l2pAuth, l2pAccessToken);
+		handler = new LrsHandler(gamificationUrl, lrsUrl, listenerUrl, configuratorUrl, configId, lrsAuth, l2pAuth, l2pAccessToken);
 		worker = new LrsWorker(handler);
 		thread = new Thread(worker);
 		thread.setDaemon(true);
-		//thread.start();
+		thread.start();
 	}	
 	
 	@Override
@@ -125,16 +128,39 @@ public class LRSListener extends RESTService {
 	@POST
 	@Path("/testStatements")
 	public Response retriveStatements() {
-		ClientConfig clientConfig = new ClientConfig();
-		Client client = ClientBuilder.newClient(clientConfig);
-		WebTarget target = client.target("https://lrs.tech4comp.dbis.rwth-aachen.de/api/connection/statement");
-		String response = target.path(
-				"?filter=%7B%22%24and%22%3A%5B%7B%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22person%5C%22%5D%7D%22%2C%22person._id%22%3A%7B%22%24in%22%3A%5B%7B%22%24oid%22%3A%225db02311c5dcd9003d904ba4%22%7D%5D%7D%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D")
-				.request()
-				.header("Authorization",
-						"Basic NjM2NmZiZDgzNDU5M2M3MDU5ODU3ZTg4ODQwYjMyZGRmMTY1NjQwMzo0MGUxZjRlZmRlNDFlM2JlZTFiMWJlOTIxNDQ1ODc5OWEwMWZhNDAy")
-				.get(String.class).toString();
-		return Response.status(HttpURLConnection.HTTP_OK).entity(response).build();
+		try {
+//			ClientConfig clientConfig = new ClientConfig();
+//			Client client = ClientBuilder.newClient();
+//			WebTarget target = client.target("https://lrs.tech4comp.dbis.rwth-aachen.de/api/connection/statement");
+//			Invocation invocation = target.path("?filter=%7B%22%24and%22%3A%5B%7B%22timestamp%22%3A%7B%22%24gte%22%3A%7B%22%24dte%22%3A%222021-11-09T00%3A00%2B01%3A00%22%7D%7D%2C%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22timestamp%5C%22%5D%7D%22%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D")
+//					.request()
+//					.header("Authorization",
+//							"Basic NjM2NmZiZDgzNDU5M2M3MDU5ODU3ZTg4ODQwYjMyZGRmMTY1NjQwMzo0MGUxZjRlZmRlNDFlM2JlZTFiMWJlOTIxNDQ1ODc5OWEwMWZhNDAy")
+//					.buildGet();
+//			Response response = invocation.invoke();
+			URL url = new URL("https://lrs.tech4comp.dbis.rwth-aachen.de/api/connection/statement?filter=%7B%22%24and%22%3A%5B%7B%22timestamp%22%3A%7B%22%24gte%22%3A%7B%22%24dte%22%3A%222021-11-09T00%3A00%2B01%3A00%22%7D%7D%2C%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22timestamp%5C%22%5D%7D%22%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D");
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Authorization", "Basic NjM2NmZiZDgzNDU5M2M3MDU5ODU3ZTg4ODQwYjMyZGRmMTY1NjQwMzo0MGUxZjRlZmRlNDFlM2JlZTFiMWJlOTIxNDQ1ODc5OWEwMWZhNDAy");
+			int code =  conn.getResponseCode();
+			BufferedReader br = null;
+			if (code >= 100 && code < 400) {
+				br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+			} else {
+				br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"));
+			}
+			
+			StringBuilder response = new StringBuilder();
+			String responseLine = null;
+			while ((responseLine = br.readLine()) != null) {
+				response.append(responseLine.trim());
+			}
+			String result = response.toString();
+			
+			return Response.status(HttpURLConnection.HTTP_OK).entity(result).build();
+		} catch (Exception e) {
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).build();
+		}
 	}
 
 	// Method to test Mapping retrieval locally
@@ -149,71 +175,5 @@ public class LRSListener extends RESTService {
 				.header("Authorization", "Basic T0lEQ19TVUItOTkzMy05ZDNkYWI1MWFhOTA6OTkzMy05ZDNkYWI1MWFhOTA=")
 				.get(Mapping.class);
 		return Response.status(HttpURLConnection.HTTP_OK).entity(response).build();
-	}
-
-	//Method to for testint multipart form-data
-	@POST
-	@Path("/data")
-	@Produces(MediaType.APPLICATION_JSON)
-	@ApiOperation(value = "createGame", notes = "Method to create a new game")
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "Cannot connect to database"),
-			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "Database Error"),
-			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "Error in parsing form data"),
-			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Game ID already exist"),
-			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Game ID cannot be empty"),
-			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "Error checking app ID exist"),
-			@ApiResponse(code = HttpURLConnection.HTTP_UNAUTHORIZED, message = "Unauthorized"),
-			@ApiResponse(code = HttpURLConnection.HTTP_CREATED, message = "New game created") })
-	public Response createGame(
-			@ApiParam(value = "Game detail in multiple/form-data type", required = true) @HeaderParam(value = HttpHeaders.CONTENT_TYPE) String contentType,
-			@ApiParam(value = "Content of form data", required = true) byte[] formData) {
-
-		// Request log
-		Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_99,
-				"POST " + "gamification/games/data", true);
-		long randomLong = new Random().nextLong(); // To be able to match
-
-		JSONObject objResponse = new JSONObject();
-		String name = null;
-		String gameid = null;
-		String gamedesc = null;
-		String commtype = null;
-		Connection conn = null;
-
-
-		Map<String, FormDataPart> parts;
-
-		try {
-			parts = MultipartHelper.getParts(formData, contentType);
-
-			FormDataPart partGameID = parts.get("gameid");
-			if (partGameID != null) {
-				// these data belong to the (optional) file id text input form element
-				gameid = partGameID.getContent();
-				// gameid must be unique
-				System.out.println(gameid);
-
-				FormDataPart partGameDesc = parts.get("gamedesc");
-				if (partGameDesc != null) {
-					gamedesc = partGameDesc.getContent();
-				} else {
-					gamedesc = "";
-				}
-				FormDataPart partCommType = parts.get("commtype");
-				if (partGameDesc != null) {
-					commtype = partCommType.getContent();
-				} else {
-					commtype = "def_type";
-				}
-				objResponse.put("gameIIIIId", gameid);
-				objResponse.put("dessssc", gamedesc);
-				objResponse.put("commmmmmmmmmmmmmmtype", commtype);
-				return Response.status(200).entity(objResponse.toString()).build();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return Response.status(200).build();
 	}
 }

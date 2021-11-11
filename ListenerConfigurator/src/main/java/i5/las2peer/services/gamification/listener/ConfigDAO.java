@@ -1,12 +1,14 @@
 package i5.las2peer.services.gamification.listener;
 
 import java.io.IOException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import org.json.JSONObject;
 
 public class ConfigDAO {
 
@@ -700,26 +702,61 @@ public class ConfigDAO {
 		return result;
 	}
 
-	public String getTimeWithId(Connection conn, String configId) throws SQLException {
-		String result = null;;
-		stmt= conn.prepareStatement("SELECT times FROM listener.times WHERE config_id = ?");
+	public JSONObject getTimeWithId(Connection conn, String configId) throws SQLException {
+		String timesTamp = null;
+		String lastStatementTimeStamp = null;
+		stmt= conn.prepareStatement("SELECT times, times2 FROM listener.times WHERE config_id = ?");
 		stmt.setString(1, configId);
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
-			result = rs.getString("times");
+			timesTamp = rs.getString("times");
+			lastStatementTimeStamp = rs.getString("times2");
 		}
-		return result;
+		JSONObject timeStamps = new JSONObject();
+		timeStamps.put("timestamp", timesTamp);
+		timeStamps.put("laststatement", lastStatementTimeStamp);
+		return timeStamps;
 	}
 
-	public void setTime(Connection conn, String configId, String timestamp) throws SQLException {
+	public void setTime(Connection conn, String configId, String timestamp, String lastSatementTimeStamp) throws SQLException {
 		stmt = conn.prepareStatement("DELETE FROM listener.times WHERE config_id = ?");
 		stmt.setString(1, configId);
 		stmt.executeUpdate();
 		
 		stmt = conn
-				.prepareStatement("INSERT INTO listener.times (config_id, times) VALUES (?, ?)");
+				.prepareStatement("INSERT INTO listener.times (config_id, times, times2) VALUES (?, ?, ?)");
 		stmt.setString(1, configId);
 		stmt.setString(2, timestamp);
+		stmt.setString(3, lastSatementTimeStamp);
 		stmt.executeUpdate();
+	}
+
+	public void registerObserver(Connection conn, String configId, URL url) throws SQLException {
+		//check if url is already registered to this configuration
+		String urlString = url.toString();
+		stmt = conn.prepareStatement("SELECT * FROM listener.observers WHERE config_id = ? AND observers = ?");
+		stmt.setString(1, configId);
+		stmt.setString(2, urlString);
+		ResultSet rs = stmt.executeQuery();
+		if (rs.next()) {
+			return;
+		}
+		stmt = conn
+				.prepareStatement("INSERT INTO listener.observers (config_id, observers) VALUES (?, ?)");
+		stmt.setString(1, configId);
+		stmt.setString(2, urlString);
+		stmt.executeUpdate();
+	}
+
+	public List<String> getObservers(Connection conn, String configId) throws SQLException{
+		List<String> result = new ArrayList<String>();
+		stmt= conn.prepareStatement("SELECT observers FROM listener.observers WHERE config_id = ?");
+		stmt.setString(1, configId);
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			String observer = rs.getString("observers");
+			result.add(observer);
+		}
+		return result;
 	}
 }

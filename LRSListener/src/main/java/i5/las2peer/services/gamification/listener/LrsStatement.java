@@ -1,12 +1,11 @@
 package i5.las2peer.services.gamification.listener;
 
-import java.util.Date;
 
 public class LrsStatement {
 	private String actor;
 	private String verb;
 	private String what;
-	private Date timeStamp;
+	private String timeStamp;
 	/**
 	 * @return the actor
 	 */
@@ -46,13 +45,13 @@ public class LrsStatement {
 	/**
 	 * @return the timeStamp
 	 */
-	public Date getTimeStamp() {
+	public String getTimeStamp() {
 		return timeStamp;
 	}
 	/**
 	 * @param timeStamp the timeStamp to set
 	 */
-	public void setTimeStamp(Date timeStamp) {
+	public void setTimeStamp(String timeStamp) {
 		this.timeStamp = timeStamp;
 	}
 }

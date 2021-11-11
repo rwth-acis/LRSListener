@@ -221,6 +221,7 @@ clean.doLast {
 	file("$projectDir/log").deleteDir()
 	file("$projectDir/bin").deleteDir()
 	file("$projectDir/output").deleteDir()
+	file("$projectDir/node-storage").deleteDir()
 }
 
 task cleanAll {
