@@ -16,4 +16,4 @@ Before the deployment of components the PostgreSQL >configurator has to be exist
 Each component can be started seperatly, by navigationg to the the component’s project directory and executing *./etc/bin./start_network.sh*. *It is very important, that the script is executed from the components project directory*. Once one component is running, the any other las2peer service, which has to run in the same network has to be >bootstrapped to the network. A component can join the network, by exuting ./etc/bin/join_network.sh *from the components project directory*
 
 ## Configuration
-For the LRSListener there is a [properties file](LRSListener/etc/i5.las2peer.services.gamification.listener.LRSListener.properties) to provide configure different LRS, LMS and Configurators. Just be with trailing slashes carefull, when configuring urls.
+For the LRSListener there is a [properties file](LRSListener/etc/i5.las2peer.services.gamification.listener.LRSListener.properties) to provide configure different LRS, LMS and Configurators. Just be carefull with trailing slashes, when configuring urls.
