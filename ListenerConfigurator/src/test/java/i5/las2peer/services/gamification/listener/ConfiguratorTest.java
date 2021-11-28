@@ -66,7 +66,6 @@ public class ConfiguratorTest {
 	private static QuestModel quest;
 	private static LevelModel level;
 	private static StreakModel streak;
-	//private static List<Pair<String,Integer>> actionList;
 	
 	// to fetch data per batch
 	int currentPage = 1;
@@ -556,7 +555,7 @@ public class ConfiguratorTest {
 		try
 		{	JSONObject jsonObject = new JSONObject();
 			jsonObject.put("timestamp", "2021-10-05");
-			jsonObject.put("laststatement", "12:13:14.123");
+			jsonObject.put("laststatement", "00:00");
 			ClientResponse result = c1.sendRequest("POST",  mainPath + "/timestamp/" +configId , jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
 	        assertEquals(HttpURLConnection.HTTP_OK, result.getHttpCode());

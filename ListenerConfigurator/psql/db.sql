@@ -4,6 +4,19 @@
 CREATE SCHEMA model AUTHORIZATION configurator;
 GRANT ALL ON SCHEMA model TO configurator;
 
+CREATE TABLE model.config_data
+(
+  config_id character varying(20) NOT NULL,
+  "name" character varying(20) NOT NULL,
+  description character varying(100),
+  CONSTRAINT config_id PRIMARY KEY (config_id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.config_data OWNER TO configurator;
+
+
 CREATE TABLE model.game_data
 (
   game_id character varying(20) NOT NULL,
@@ -15,6 +28,57 @@ WITH (
   OIDS=FALSE
 );
 ALTER TABLE model.game_data OWNER TO configurator;
+
+
+CREATE TABLE model.action_data
+(
+  action_id character varying(20) NOT null,
+  "name" character varying(20) NOT NULL,
+  description character varying(100),
+  point_value integer NOT NULL DEFAULT 0,
+  use_notification boolean,
+  notif_message character varying,
+  CONSTRAINT action_id PRIMARY KEY (action_id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.action_data OWNER TO configurator;
+
+
+CREATE TABLE model.badge_data
+(
+  badge_id character varying(20) NOT NULL,
+  "name" character varying(20) NOT NULL,
+  description character varying(100),
+  use_notification boolean,
+  notif_message character varying,
+  CONSTRAINT badge_id PRIMARY KEY (badge_id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.badge_data OWNER TO configurator;
+
+
+CREATE TABLE model.achievement_data
+(
+  achievement_id character varying(20) NOT NULL,
+  "name" character varying(20) NOT NULL,
+  description character varying(100),
+  point_value integer NOT NULL DEFAULT 0,
+  badge_id character varying(20),
+  use_notification boolean,
+  notif_message character varying,
+  CONSTRAINT achievement_id PRIMARY KEY (achievement_id),
+  CONSTRAINT badge_id FOREIGN KEY (badge_id)
+    REFERENCES model.badge_data (badge_id) ON UPDATE CASCADE ON DELETE CASCADE
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE model.achievement_data OWNER TO configurator;
+
 
 CREATE TABLE model.quest_data
 (
@@ -41,6 +105,7 @@ WITH (
 );
 ALTER TABLE model.quest_data OWNER TO configurator;
 
+
 CREATE TABLE model.quest_action_data
 (
   quest_id character varying(20) NOT null,
@@ -57,52 +122,6 @@ WITH (
 );
 ALTER TABLE model.quest_action_data OWNER TO configurator;
 
-CREATE TABLE model.achievement_data
-(
-  achievement_id character varying(20) NOT NULL,
-  "name" character varying(20) NOT NULL,
-  description character varying(100),
-  point_value integer NOT NULL DEFAULT 0,
-  badge_id character varying(20),
-  use_notification boolean,
-  notif_message character varying,
-  CONSTRAINT achievement_id PRIMARY KEY (achievement_id),
-  CONSTRAINT badge_id FOREIGN KEY (badge_id)
-    REFERENCES model.badge_data (badge_id) ON UPDATE CASCADE ON DELETE CASCADE
-)
-WITH (
-  OIDS=FALSE
-);
-ALTER TABLE model.achievement_data OWNER TO configurator;
-
-CREATE TABLE model.badge_data
-(
-  badge_id character varying(20) NOT NULL,
-  "name" character varying(20) NOT NULL,
-  description character varying(100),
-  use_notification boolean,
-  notif_message character varying,
-  CONSTRAINT badge_id PRIMARY KEY (badge_id)
-)
-WITH (
-  OIDS=FALSE
-);
-ALTER TABLE model.badge_data OWNER TO configurator;
-
-CREATE TABLE model.action_data
-(
-  action_id character varying(20) NOT null,
-  "name" character varying(20) NOT NULL,
-  description character varying(100),
-  point_value integer NOT NULL DEFAULT 0,
-  use_notification boolean,
-  notif_message character varying,
-  CONSTRAINT action_id PRIMARY KEY (action_id)
-)
-WITH (
-  OIDS=FALSE
-);
-ALTER TABLE model.action_data OWNER TO configurator;
 
 CREATE TABLE model.level_data
 (
@@ -118,18 +137,6 @@ WITH (
   OIDS=FALSE
 );
 ALTER TABLE model.level_data OWNER TO configurator;
-
-CREATE TABLE model.config_data
-(
-  config_id character varying(20) NOT NULL,
-  "name" character varying(20) NOT NULL,
-  description character varying(100),
-  CONSTRAINT config_id PRIMARY KEY (config_id)
-)
-WITH (
-  OIDS=FALSE
-);
-ALTER TABLE model.config_data OWNER TO configurator;
 
 
 CREATE TABLE model.streak_data
@@ -149,7 +156,8 @@ CREATE TABLE model.streak_data
 WITH (
   OIDS=FALSE
 );
-ALTER TABLE model.quest_data OWNER TO configurator;
+ALTER TABLE model.streak_data OWNER TO configurator;
+
 
 CREATE TABLE model.streak_action_data
 (
@@ -165,11 +173,12 @@ CREATE TABLE model.streak_action_data
 WITH (
   OIDS=FALSE
 );
-ALTER TABLE model.quest_action_data OWNER TO configurator;
+ALTER TABLE model.streak_action_data OWNER TO configurator;
 
 
 CREATE SCHEMA listen AUTHORIZATION configurator;
 GRANT ALL ON SCHEMA listen TO configurator;
+
 
 CREATE TABLE listen.game_info
 (
@@ -330,3 +339,24 @@ WITH (
   OIDS=FALSE
 );
 ALTER TABLE listener.observers OWNER TO configurator;
+
+
+drop schema if exists public CASCADE;
+CREATE SCHEMA public AUTHORIZATION configurator;
+GRANT ALL ON SCHEMA public TO configurator;
+
+
+CREATE OR REPLACE FUNCTION add_mock_data() RETURNS void AS
+$BODY$
+BEGIN
+-- 	-- Populate tables with mock data
+	EXECUTE 'INSERT INTO model.config_data VALUES(''testConfig'', ''ConfigName'', ''testDesc'')';
+	EXECUTE 'INSERT INTO model.game_data VALUES(''test'', ''GF'', ''GamificationTest'')';
+	EXECUTE 'INSERT INTO model.action_data VALUES(''staction1'', ''GF1'', ''Action for GF Test'',1, false, ''some text'')';
+	EXECUTE 'INSERT INTO listen.action_info VALUES(''testConfig'', ''test'', ''staction1'', ''Gamification'')';
+	EXECUTE 'INSERT INTO listener.times VALUES(''testConfig'', ''2021-11-28'', ''12:13'')';
+END;
+$BODY$
+LANGUAGE plpgsql VOLATILE;
+
+SELECT add_mock_data()
