@@ -95,7 +95,44 @@ public class LRSListener extends RESTService {
 	public void onStop() {
 		thread.interrupt();
 	}
+	
+	
+	/**
+	 * This methods is triggered by a LMS, this methods start a Listener instance for each user
+	 * @param userToken learning layers user access token
+	 */
+	@POST
+	@Path("/start")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void start(@ApiParam(value = "Mapping detail in JSON", required = true) String userToken) {
+		UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+		String name = userAgent.getLoginName();
+		if (name.equals("anonymous")) {
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10,
+					"Unauthorized mapping notification with user  " + name);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11,
+					"Because of unauthorized access could not set mapping " + mapping.toString());
+			return;
+		}
+		try {
+			handler.setMap(mapping);
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
+					"Could change mapping" + mapping.toString());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
+					"Mapping changed by user " + name);
+		} catch (Exception e) {
+			e.printStackTrace();
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10,
+					"Could not set mapping. The follwoing error ocurred " + e.getMessage());
+			Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_11,
+					"Mapping change started from user" + name);
+		}
+	}
 
+	/**
+	 * This methods serves as an endpoint a ListenerConfigurates send a mapping, when it changed. Precondition is, that the Listener regsitered itself as an observer for given configuration.
+	 * @param mapping to obtain
+	 */
 	@POST
 	@Path("/notify")
 	@Consumes(MediaType.APPLICATION_JSON)
