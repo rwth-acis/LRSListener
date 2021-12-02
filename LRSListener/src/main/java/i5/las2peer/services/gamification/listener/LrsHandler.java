@@ -56,23 +56,25 @@ public class LrsHandler {
 	private String configuratorUrl;
 	private String configId;
 	private String lrsAuth;
-	private String l2pAuth;
-	private String l2pAccessToken;
 	private String lastCheckedDay;
 	private String lastCheckedTime;
+	private User user;
+	private boolean hasNextPage;
+	private String nextPage;
 
 	public LrsHandler(String gamificationUrl, String lrsUrl, String listenerUrl, String configuratorUrl,
-			String configId, String lrsAuth, String l2pAuth, String l2pAccessToken) {
+			String configId, String lrsAuth, User user) {
 		this.gamificationUrl = gamificationUrl;
 		this.lrsUrl = lrsUrl;
 		this.listenerUrl = listenerUrl;
 		this.configuratorUrl = configuratorUrl;
 		this.configId = configId;
 		this.lrsAuth = lrsAuth;
-		this.l2pAuth = l2pAuth;
-		this.l2pAccessToken = l2pAccessToken;
+		this.user = user;
+		this.hasNextPage = false;
+		this.nextPage = null;
 		initTimeStamps();
-		initFilter();
+		initFilter(getLastCheckedDay());
 		Mapping mapping = null;
 		try {
 			mapping = getMappingFromConfigurator(getConfigId());
@@ -128,7 +130,9 @@ public class LrsHandler {
 		Client client = ClientBuilder.newClient(clientConfig);
 		WebTarget target = client.target(getConfiguratorUrl());
 		Invocation invocation = target.path("/timestamp/" + configId).request()
-				.header("access-token", getL2pAccessToken()).header("Authorization", getL2pAuth()).buildGet();
+				.header("access-token", getUser().getToken())
+				.header("Authorization", getUser().getL2pAuth())
+				.buildGet();
 		String response = invocation.invoke(String.class);
 		return response;
 	}
@@ -145,8 +149,8 @@ public class LrsHandler {
 		Client client = ClientBuilder.newClient(clientConfig);
 		WebTarget target = client.target(getConfiguratorUrl());
 		Invocation invocation = target.path("/timestamp/" + configId).request()
-				.header("access-token", getL2pAccessToken()).header("Authorization", getL2pAuth())
-				.buildPost(Entity.entity(timeStamps, MediaType.TEXT_PLAIN));
+				.header("access-token", getUser().getToken()).header("Authorization", getUser().getL2pAuth())
+				.buildPost(Entity.entity(timeStamps.toString(), MediaType.TEXT_PLAIN));
 		String result = invocation.invoke(String.class);
 	}
 
@@ -164,12 +168,12 @@ public class LrsHandler {
 	/**
 	 * filtering just by timestamp, sorting is time decsending by LRS default
 	 */
-	private void initFilter() {
-		adjustFilterWithTimeStamp();
+	private void initFilter(String date) {
+		adjustFilterWithTimeStamp(date);
 	}
 
-	private void adjustFilterWithTimeStamp() {
-		setLrsFilter(encodeTimeStamp());
+	private void adjustFilterWithTimeStamp(String date) {
+		setLrsFilter(encodeTimeStamp(date));
 	}
 
 	/**
@@ -177,11 +181,26 @@ public class LrsHandler {
 	 * 
 	 * @return URL encoded LRS Filter query
 	 */
-	private String encodeTimeStamp() {
+	private String encodeTimeStamp(String date) {
 		String filter = "?filter=%7B%22%24and%22%3A%5B%7B%22timestamp%22%3A%7B%22%24gte%22%3A%7B%22%24dte%22%3A%22"
-				+ getLastCheckedDay()
-				+ "T00%3A00%2B01%3A00%22%7D%7D%2C%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22timestamp%5C%22%5D%7D%22%7D%5D%7D&sort=%7B%22timestamp%22%3A-1%2C%22_id%22%3A1%7D";
+				+ date
+				+ "T00%3A00%2B01%3A00%22%7D%7D%2C%22%24comment%22%3A%22%7B%5C%22criterionLabel%5C%22%3A%5C%22A%5C%22%2C%5C%22criteriaPath%5C%22%3A%5B%5C%22timestamp%5C%22%5D%7D%22%7D%5D%7D&sort=%7B%22timestamp%22%3A1%2C%22_id%22%3A1%7D";
 		return filter;
+	}
+	
+	/**
+	 * @param configId Configuration Id for Mapping to be retrieved
+	 * @return Mapping obtained from ListenerConfigurator for Configuration
+	 */
+	private Mapping getMappingFromConfigurator(String configId) {
+		ClientConfig clientConfig = new ClientConfig();
+		Client client = ClientBuilder.newClient(clientConfig);
+		WebTarget target = client.target(getConfiguratorUrl());
+		Invocation invocation = target.path("/mapping/" + configId).request()
+				.header("access-token", getUser().getToken()).header("Authorization", getUser().getL2pAuth())
+				.buildGet();
+		Mapping response = invocation.invoke(Mapping.class);
+		return response;
 	}
 
 	/**
@@ -198,34 +217,40 @@ public class LrsHandler {
 		Client client = ClientBuilder.newClient(clientConfig);
 		WebTarget target = client.target(getConfiguratorUrl());
 		Invocation invocation = target.path("/register/" + configId).request()
-				.header("access-token", getL2pAccessToken()).header("Authorization", getL2pAuth())
+				.header("access-token", getUser().getToken()).header("Authorization", getUser().getL2pAuth())
 				.buildPost(Entity.entity(output, MediaType.TEXT_PLAIN));
 		String response = invocation.invoke(String.class);
 	}
 
 	/**
-	 * Method,that solves the main use,case It retirives xAPI statements from a LRS
+	 * Method,that solves the main use,case It retrieves xAPI statements from a LRS
 	 * and executes Gamification Framework functions, based on a configuration
 	 * mapping
 	 */
 	public void handle() {
 		// Listener can only work with present mapping, else sleep and wait for new
-		// mapping
 		if (getMap() != null) {
+			String sessionStart = "";
 			List<LrsStatement> statements = null;
 			try {
 				statements = retriveStatements();
+				sessionStart = statements.get(0).getTimeStamp();
 				for (LrsStatement statement : statements) {
 					String result = null;
 					try {
+						// true if the last time the listener checked is before the timestamp of the current statement
 						if (compareStatementTimestamp(statement.getTimeStamp())) {
-							result = executeGamification(statement);
+							// if user email not equal to actor field
+							if ((getUser().getMail().equals(statement.getActor()))) {
+								// only execute gamification if statement belongs to current user
+								result = executeGamification(statement);
+								// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
+								// "Statement executed successfully " + statement.toString());
+								// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
+								// "Result of executed statement " + result);
+							}
 							updateTimes(statement);
-							adjustFilterWithTimeStamp();
-							// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-							// "Statement executed successfully " + statement.toString());
-							// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-							// "Result of executed statement " + result);
+							adjustFilterWithTimeStamp(getLastCheckedDay());
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -244,47 +269,57 @@ public class LrsHandler {
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_17,
 				// e.getMessage());
 			} finally {
-				writeTimeStampToDB(getConfigId());
+				try {
+					writeTimeStampToDB(getConfigId());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					if (isHasNextPage()) {
+						if (!differentDate(sessionStart)) {
+							handlePagination(sessionStart);
+						}
+					}
+				} catch (Exception e2) {
+					e2.printStackTrace();
+				}
 			}
 		}
 	}
 
-	private void updateTimes(LrsStatement statement) {
-		String statementTime = statement.getTimeStamp();
-		String[] times = statementTime.split("T", 2);
-		setLastCheckedDay(times[0]);
-		setLastCheckedTime(times[1]);
-	}
-
 	/**
-	 * @param configId Configuration Id for Mapping to be retrieved
-	 * @return Mapping obtained from ListenerConfigurator for Configuration
+	 * 
+	 * @param firstTime time of the first statement of this session
+	 * @return true if the first statement date is before the last statement date
 	 */
-	private Mapping getMappingFromConfigurator(String configId) {
-		ClientConfig clientConfig = new ClientConfig();
-		Client client = ClientBuilder.newClient(clientConfig);
-		WebTarget target = client.target(getConfiguratorUrl());
-		Invocation invocation = target.path("/mapping/" + configId).request()
-				.header("access-token", getL2pAccessToken()).header("Authorization", getL2pAuth()).buildGet();
-		Mapping response = invocation.invoke(Mapping.class);
-		return response;
+	private boolean differentDate(String firstTime) {
+		String[] firstDate = firstTime.split("T");
+		LocalDateTime firstStatementDate = LocalDateTime.parse(firstDate[0]+ " 00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+		LocalDateTime lasteStatementDate = LocalDateTime.parse(getLastCheckedDay()+ " 00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+		if (firstStatementDate.isBefore(lasteStatementDate)) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
+	 * 
+	 * @param firstTime the time of the first statement, that has been retrived
+	 * @throws IOException IOException
+	 */
+	private void handlePagination(String firstTime) throws IOException {
+		String[] firstDate = firstTime.split("T");
+		setLrsFilter(encodeTimeStamp(firstDate[0]) + "&after=" + getNextPage() + "&first=10");
+	}
+
+
+	/**
+	 * Also checks if pagination is possible, If yes initializes pagination
 	 * 
 	 * @return List of LrsStatements for preset filter set in target.path
 	 * @throws IOException
 	 */
 	private List<LrsStatement> retriveStatements() throws IOException {
-//		ClientConfig clientConfig = new ClientConfig();
-//		Client client = ClientBuilder.newClient(clientConfig);
-//		WebTarget target = client.target(getLrsUrl());
-//		String response = target
-//				.path(getLrsFilter())
-//				.request()
-//				.header("Authorization", getLrsAuth())
-//				.get(String.class)
-//				.toString();
 		URL url = new URL(getLrsUrl() + getLrsFilter());
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("GET");
@@ -305,7 +340,12 @@ public class LrsHandler {
 		String response = sb.toString();
 		List<LrsStatement> statements = null;
 		if (response != null) {
-			statements = parseToList(response);
+			JSONObject object = new JSONObject(response);
+			statements = parseToList(object);
+			setHasNextPage(object.getJSONObject("pageInfo").getBoolean("hasNextPage"));
+			if (isHasNextPage()) {
+				setNextPage(object.getJSONObject("pageInfo").getString("endCursor"));
+			}
 		}
 		return statements;
 	}
@@ -316,12 +356,11 @@ public class LrsHandler {
 	 *                 target.path
 	 * @return
 	 */
-	private List<LrsStatement> parseToList(String response) {
+	private List<LrsStatement> parseToList(JSONObject object) {
 		List<LrsStatement> statements = new ArrayList<>();
-		JSONObject object = new JSONObject(response);
 		JSONArray array = object.getJSONArray("edges");
 		// also sort from eldest to newest
-		for (int i = array.length() - 1; i >= 0; i--) {
+		for (int i = 0; i < array.length(); i++) {
 			try {
 				JSONObject statement = array.getJSONObject(i).getJSONObject("node").getJSONObject("statement");
 				LrsStatement stmt = new LrsStatement();
@@ -366,6 +405,17 @@ public class LrsHandler {
 
 	/**
 	 * 
+	 * @param statement the statement which is newer that the last check one
+	 */
+	private void updateTimes(LrsStatement statement) {
+		String statementTime = statement.getTimeStamp();
+		String[] times = statementTime.split("T", 2);
+		setLastCheckedDay(times[0]);
+		setLastCheckedTime(times[1]);
+	}
+	
+	/**
+	 * 
 	 * @param statement LrsStatement to execute Gamification Framework Functions
 	 *                  with
 	 * @return Result of the specialized execute Methods
@@ -383,10 +433,10 @@ public class LrsHandler {
 		// then trigger the according Gamification Framework Function
 		Pattern p = null;
 		String toMatch = "";
-		String pattern ="";
+		String pattern = "";
 		for (StreakMapping streak : streaks) {
 			pattern = streak.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -395,7 +445,7 @@ public class LrsHandler {
 		}
 		for (QuestMapping quest : quests) {
 			pattern = quest.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -404,7 +454,7 @@ public class LrsHandler {
 		}
 		for (ActionMapping action : actions) {
 			pattern = action.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -413,7 +463,7 @@ public class LrsHandler {
 		}
 		for (LevelMapping level : levels) {
 			pattern = level.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -422,7 +472,7 @@ public class LrsHandler {
 		}
 		for (AchievementMapping achivement : achievements) {
 			pattern = achivement.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -431,7 +481,7 @@ public class LrsHandler {
 		}
 		for (GameMapping game : games) {
 			pattern = game.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -440,7 +490,7 @@ public class LrsHandler {
 		}
 		for (BadgeMapping badge : badges) {
 			pattern = badge.getListenTo();
-			p = Pattern.compile(".*"+pattern+".*");
+			p = Pattern.compile(".*" + pattern + ".*");
 			toMatch = statement.getWhat();
 			Matcher m = p.matcher(toMatch);
 			if (m.matches()) {
@@ -458,7 +508,6 @@ public class LrsHandler {
 	 * @return Result of the executed Gamification request
 	 */
 	private String executeStreak(LrsStatement statement, String gameId, String streakId) {
-		// TODO
 		String result = null;
 		try {
 			String streak = retriveGameElement("/gamification/configurator/streak/" + getConfigId() + "/" + streakId);
@@ -468,21 +517,21 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/streaks/" + gameId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "updated":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/streaks/" + gameId + "/" + streakId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/streaks/" + gameId + "/" + streakId);
 				return result;
@@ -539,19 +588,19 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/quests/" + gameId, output, "application/json");
 				return result;
 			case "updated":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/quests/" + gameId + "/" + questId, output, "application/json");
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/quests/" + gameId + "/" + questId);
 				return result;
@@ -621,26 +670,26 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "replied":
 				result = gamificationPostRequest(
-						"/visualization/actions/" + gameId + "/" + actionId + "/" + statement.getActor(), new byte[0],
+						"/visualization/actions/" + gameId + "/" + actionId + "/" + getUser().getName(), new byte[0],
 						"application/json");
 				return result;
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/actions/" + gameId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "updated":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/actions/" + gameId + "/" + actionId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/actions/" + gameId + "/" + actionId);
 				return result;
@@ -704,21 +753,21 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/levels/" + gameId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "updated":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/levels/" + gameId + "/" + levelNumber, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/levels/" + gameId + "/" + levelNumber);
 				return result;
@@ -785,21 +834,21 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/achievements/" + gameId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "updated":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/achievements/" + gameId + "/" + achievementId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/achievements/" + gameId + "/" + achievementId);
 				return result;
@@ -855,21 +904,21 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/games/data", output, "multipart/form-data; boundary=" + boundary);
 				return result;
 			case "updated":
 				// This should never happen
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/games/data/" + gameId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/games/data/" + gameId);
 				return result;
@@ -934,21 +983,21 @@ public class LrsHandler {
 			switch (statement.getVerb()) {
 			case "created":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPostRequest("/badges/" + gameId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "updated":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_15,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationPutRequest("/badges/" + gameId + "/" + badgeId, output,
 						"multipart/form-data; boundary=" + boundary);
 				return result;
 			case "deleted":
 				// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_16,
-				// statement.getActor() + " " + statement.getVerb() + " " +
+				// getUser().getName() + " " + statement.getVerb() + " " +
 				// statement.getWhat());
 				result = gamificationDeleteRequest("/badges/" + gameId + "/" + badgeId);
 				return result;
@@ -982,8 +1031,8 @@ public class LrsHandler {
 		ClientConfig clientConfig = new ClientConfig();
 		Client client = ClientBuilder.newClient(clientConfig);
 		WebTarget target = client.target(getConfiguratorUrl());
-		String result = target.path(path).request().header("access-token", getL2pAccessToken())
-				.header("Authorization", getL2pAuth()).get(String.class);
+		String result = target.path(path).request().header("access-token", getUser().getToken())
+				.header("Authorization", getUser().getL2pAuth()).get(String.class);
 		return result;
 	}
 
@@ -1010,8 +1059,8 @@ public class LrsHandler {
 		connection.setDoInput(true);
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", contentType);
-		connection.setRequestProperty("Authorization", getL2pAuth());
-		connection.setRequestProperty("access-token", getL2pAccessToken());
+		connection.setRequestProperty("Authorization", getUser().getL2pAuth());
+		connection.setRequestProperty("access-token", getUser().getToken());
 		connection.setRequestMethod("POST");
 		OutputStream wr = connection.getOutputStream();
 		wr.write(body, 0, body.length);
@@ -1061,8 +1110,8 @@ public class LrsHandler {
 		connection.setDoInput(true);
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-		connection.setRequestProperty("Authorization", getL2pAuth());
-		connection.setRequestProperty("access-token", getL2pAccessToken());
+		connection.setRequestProperty("Authorization", getUser().getL2pAuth());
+		connection.setRequestProperty("access-token", getUser().getToken());
 		connection.setRequestMethod("PUT");
 		OutputStream wr = connection.getOutputStream();
 		wr.write(body, 0, body.length);
@@ -1109,8 +1158,8 @@ public class LrsHandler {
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 		connection.setDoInput(true);
 		connection.setDoOutput(true);
-		connection.setRequestProperty("Authorization", getL2pAuth());
-		connection.setRequestProperty("access-token", getL2pAccessToken());
+		connection.setRequestProperty("Authorization", getUser().getL2pAuth());
+		connection.setRequestProperty("access-token", getUser().getToken());
 		connection.setRequestMethod("DELETE");
 		OutputStream wr = connection.getOutputStream();
 		// Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_MESSAGE_14,
@@ -1256,34 +1305,6 @@ public class LrsHandler {
 	}
 
 	/**
-	 * @return the l2pAuth
-	 */
-	public String getL2pAuth() {
-		return l2pAuth;
-	}
-
-	/**
-	 * @param l2pAuth the l2pAuth to set
-	 */
-	public void setL2pAuth(String l2pAuth) {
-		this.l2pAuth = l2pAuth;
-	}
-
-	/**
-	 * @return the l2pAccessToken
-	 */
-	public String getL2pAccessToken() {
-		return l2pAccessToken;
-	}
-
-	/**
-	 * @param l2pAccessToken the l2pAccessToken to set
-	 */
-	public void setL2pAccessToken(String l2pAccessToken) {
-		this.l2pAccessToken = l2pAccessToken;
-	}
-
-	/**
 	 * @return the day
 	 */
 	public String getLastCheckedDay() {
@@ -1309,6 +1330,47 @@ public class LrsHandler {
 	 */
 	public void setLastCheckedTime(String time) {
 		this.lastCheckedTime = time;
+	}
+
+	/**
+	 * @return the user
+	 */
+	public User getUser() {
+		return user;
+	}
+
+	/**
+	 * @param user the user to set
+	 */
+	public void setUser(User user) {
+		this.user = user;
+	}
+
+	/**
+	 * @return the hasNextPage
+	 */
+	public boolean isHasNextPage() {
+		return hasNextPage;
+	}
+
+	/**
+	 * @param hasNextPage the hasNextPage to set
+	 */
+	public void setHasNextPage(boolean hasNextPage) {
+		this.hasNextPage = hasNextPage;
+	}
+	/**
+	 * @return the nextPage
+	 */
+	public String getNextPage() {
+		return nextPage;
+	}
+
+	/**
+	 * @param nextPage the nextPage to set
+	 */
+	public void setNextPage(String nextPage) {
+		this.nextPage = nextPage;
 	}
 
 }

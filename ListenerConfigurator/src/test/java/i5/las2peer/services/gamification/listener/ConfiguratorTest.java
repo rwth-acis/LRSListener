@@ -395,7 +395,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB1_getConfigWithId(){
 
 		System.out.println("Test --- Get Config With Id");
@@ -412,7 +412,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB2_getGameWithId(){
 
 		System.out.println("Test --- Get Game With Id");
@@ -429,7 +429,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB3_getActionWithId(){
 
 		System.out.println("Test --- Get Action With Id");
@@ -446,7 +446,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB4_getBadgeWithId(){
 
 		System.out.println("Test --- Get Badge With Id");
@@ -463,7 +463,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB5_getAchievementWithId(){
 
 		System.out.println("Test --- Get Achievement With Id");
@@ -480,7 +480,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB6_getQuestWithId(){
 
 		System.out.println("Test --- Get Quest With Id");
@@ -497,7 +497,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testB7_getLevelWithId(){
 
 		System.out.println("Test --- Get Level With Id");
@@ -531,7 +531,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testC1_getConfigurationMapping(){
 
 		System.out.println("Test --- Get Mapping With configId");
@@ -554,7 +554,7 @@ public class ConfiguratorTest {
 		System.out.println("Test --- Set Timestamps");
 		try
 		{	JSONObject jsonObject = new JSONObject();
-			jsonObject.put("timestamp", "2021-10-05");
+			jsonObject.put("timestamp", "2021-08-01");
 			jsonObject.put("laststatement", "00:00");
 			ClientResponse result = c1.sendRequest("POST",  mainPath + "/timestamp/" +configId , jsonObject.toString(), "application/json", "*/*", headers);
 			System.out.println(result.getResponse());
@@ -584,7 +584,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testD1_updateAction() {
 		try
 		{
@@ -605,7 +605,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testD2_updateBadge() {
 		try
 		{
@@ -626,7 +626,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testD3_updateAchievement() {
 		try
 		{
@@ -647,7 +647,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testD4_updateQuest() {
 		try
 		{
@@ -668,7 +668,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testD5_updateLevel() {
 		try
 		{
@@ -710,7 +710,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testE1_deleteGame(){
 		System.out.println("Test --- Delete Game");
 		try
@@ -725,7 +725,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testE2_deleteQuest(){
 		System.out.println("Test --- Delete Quest");
 		try
@@ -755,7 +755,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testE4_deleteLevel(){
 		System.out.println("Test --- Delete Level");
 		try
@@ -770,7 +770,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testE5_deleteAchievement(){
 		System.out.println("Test --- Delete Achievement");
 		try
@@ -785,7 +785,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testE6_deleteBadge(){
 		System.out.println("Test --- Delete Badge");
 		try
@@ -800,7 +800,7 @@ public class ConfiguratorTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testE7_deleteAction(){
 		System.out.println("Test --- Delete Action");
 		try
@@ -818,7 +818,7 @@ public class ConfiguratorTest {
 	}
 	
 	
-	@Test
+	//@Test
 	public void testE8_deleteConfiguration(){
 		System.out.println("Test --- Delete Configuration");
 		try

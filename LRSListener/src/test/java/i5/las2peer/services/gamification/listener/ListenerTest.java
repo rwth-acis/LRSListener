@@ -140,27 +140,9 @@ public class ListenerTest {
 		System.out.println("Test --- Create New Configuration");
 		try
 		{
-			ClientResponse result = c1.sendRequest("POST", mainPath+ "/testStatements", "", "text/plain", "*/*", headers);
-			System.out.println(result.getResponse());
-			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
-				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());
-			}
-			else{
-				assertEquals(HttpURLConnection.HTTP_CREATED,result.getHttpCode());
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail("Exception: " + e);
-			System.exit(0);
-		}
-	}
-	
-	@Test
-	public void testA2_testMapping(){
-		System.out.println("Test --- Create New Configuration");
-		try
-		{
-			ClientResponse result = c1.sendRequest("POST", mainPath+ "/testMapping", "", "text/plain", "*/*", headers);
+			//TODO paste your current token here to test
+			String token = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJoZTJ6NVRzbEM1M3VPQXZxNmFWckplT2I0ZUx5TUxUam9IT3dIdTBiRmFJIn0.eyJleHAiOjE2Mzg0NzU0MTQsImlhdCI6MTYzODQ3MTgxNCwiYXV0aF90aW1lIjoxNjM4NDQ1NDQxLCJqdGkiOiIyOTRlYzBjNC1lNWFmLTQwMTQtYmRlMC1iMmZiYjEyZDg4NzAiLCJpc3MiOiJodHRwczovL2FwaS5sZWFybmluZy1sYXllcnMuZXUvYXV0aC9yZWFsbXMvbWFpbiIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI5OTMzLTlkM2RhYjUxYWE5MCIsInR5cCI6IkJlYXJlciIsImF6cCI6ImJkZGE3Mzk2LTNmNmQtNGQ4My1hYzIxLTY1YjQwNjlkMGVhYiIsIm5vbmNlIjoiZTIzYmRiN2M3NDQ3NDEzMWJmNjg4NDgzNTg1YzMwYjkiLCJzZXNzaW9uX3N0YXRlIjoiYTE3OGI0Y2UtZTAzMC00NDUxLTgzYzQtZTRhNjUwNzM0OTUyIiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vMTM3LjIyNi4yMzIuMTc1OjMyMDEwIiwiaHR0cDovL3RlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjMxMDEwIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwczovL2ZpbGVzLnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6OTA5OCIsImh0dHBzOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODQiLCJodHRwczovL21vbml0b3IudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODEiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHBzOi8vZ2l0LnRlY2g0Y29tcC5kYmlzLnJ3dGgtYWFjaGVuLmRlIiwiaHR0cDovLzEyNy4wLjAuMTo4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODAiLCJodHRwczovL2NhZS1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwOi8vMTI3LjAuMC4xOjgwODAiLCJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJodHRwOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZSIsImh0dHBzOi8vbGFzMnBlZXIuZGJpcy5yd3RoLWFhY2hlbi5kZTo5MDk4IiwiaHR0cDovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODA4MCIsImh0dHA6Ly9sb2NhbGhvc3Q6ODA4MSIsImh0dHBzOi8vbGFzMnBlZXIudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiLCJodHRwczovL2xhczJwZWVyLmRiaXMucnd0aC1hYWNoZW4uZGU6ODAiLCJodHRwOi8vY2xvdWQxMC5kYmlzLnJ3dGgtYWFjaGVuLmRlOjgwODIiLCJodHRwczovL3NiZi1kZXYudGVjaDRjb21wLmRiaXMucnd0aC1hYWNoZW4uZGUiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwic2lkIjoiYTE3OGI0Y2UtZTAzMC00NDUxLTgzYzQtZTRhNjUwNzM0OTUyIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJNYXJjIEJlbHNjaCIsInByZWZlcnJlZF91c2VybmFtZSI6Im1iZWxzY2giLCJnaXZlbl9uYW1lIjoiTWFyYyIsImZhbWlseV9uYW1lIjoiQmVsc2NoIiwiZW1haWwiOiJtYXJjLmJlbHNjaEByd3RoLWFhY2hlbi5kZSJ9.dfqGimXDnA8E_E4dhYA7L95Umk8tjvqDuu-F237SKNZ0aRTCDLsFqza2KY9JYiJQ6clAlrSGeJPGq1FPyYHrIbk6Y-Mrfej9pLyk_2CD5WkTw0RnWZL9ZRgovtGsc9Ya0a_RN_qDXWCKyeIXEo307xVWIYhhpbaNX89elqOSHibMJCbQ3FlEDX-VH47LdUqITVf6yzlo6HSSK2LRVgE7WBobsSKicy_vWMl-hhAyApi9RlpbjE5Voq2S8gm8l0qQ9URHoH27fcCoLjCFLuaTMYbw4zDAa_kXGWm_XtgYMgbGIjtBszSUq_LRe4HuodF-rnyJimf_tLp2-7bnzVHg6w";
+			ClientResponse result = c1.sendRequest("POST", mainPath+ "/start", token, "text/plain", "*/*", headers);
 			System.out.println(result.getResponse());
 			if(result.getHttpCode()==HttpURLConnection.HTTP_OK){
 				assertEquals(HttpURLConnection.HTTP_OK,result.getHttpCode());

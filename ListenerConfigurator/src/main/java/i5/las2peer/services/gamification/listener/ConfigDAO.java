@@ -702,11 +702,12 @@ public class ConfigDAO {
 		return result;
 	}
 
-	public JSONObject getTimeWithId(Connection conn, String configId) throws SQLException {
+	public JSONObject getTimeWithId(Connection conn, String configId, String name) throws SQLException {
 		String timesTamp = null;
 		String lastStatementTimeStamp = null;
-		stmt= conn.prepareStatement("SELECT times, times2 FROM listener.times WHERE config_id = ?");
+		stmt= conn.prepareStatement("SELECT times, times2 FROM listener.times WHERE config_id = ? AND name = ?");
 		stmt.setString(1, configId);
+		stmt.setString(2, name);
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			timesTamp = rs.getString("times");
@@ -718,16 +719,18 @@ public class ConfigDAO {
 		return timeStamps;
 	}
 
-	public void setTime(Connection conn, String configId, String timestamp, String lastSatementTimeStamp) throws SQLException {
-		stmt = conn.prepareStatement("DELETE FROM listener.times WHERE config_id = ?");
+	public void setTime(Connection conn, String configId, String timestamp, String lastSatementTimeStamp, String name) throws SQLException {
+		stmt = conn.prepareStatement("DELETE FROM listener.times WHERE config_id = ? AND name = ?");
 		stmt.setString(1, configId);
+		stmt.setString(2, name);
 		stmt.executeUpdate();
 		
 		stmt = conn
-				.prepareStatement("INSERT INTO listener.times (config_id, times, times2) VALUES (?, ?, ?)");
+				.prepareStatement("INSERT INTO listener.times (config_id, times, times2, name) VALUES (?, ?, ?, ?)");
 		stmt.setString(1, configId);
 		stmt.setString(2, timestamp);
 		stmt.setString(3, lastSatementTimeStamp);
+		stmt.setString(4, name);
 		stmt.executeUpdate();
 	}
 

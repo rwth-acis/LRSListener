@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -104,6 +105,42 @@ public class ListenerConfigurator extends RESTService {
 		return Response.status(HttpURLConnection.HTTP_UNAUTHORIZED).entity(objResponse.toString())
 				.type(MediaType.APPLICATION_JSON).build();
 	}
+	
+	/**
+	 * 
+	 * @param httpHeaders validate
+	 * @return return
+	 */
+	@POST
+	@Path("/test")
+	@Produces(MediaType.APPLICATION_JSON)
+	@ApiResponses(value = {
+			@ApiResponse(code = HttpURLConnection.HTTP_CREATED, message = "{message:Configuration upload success}"),
+			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "{message:Cannot create configuration. Configuration already exist!}"),
+			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "{message:Cannot create configuration. Configuration cannot be null!}"),
+
+			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "{message:Cannot create configuration. Failed to upload configuration."),
+			@ApiResponse(code = HttpURLConnection.HTTP_UNAUTHORIZED, message = "{message:You are not authorized") })
+	@ApiOperation(value = "createNewConfig", notes = "Create configuration")
+	public Response testHeader(@javax.ws.rs.core.Context HttpHeaders httpHeaders){
+		JSONObject responseObject = new JSONObject();
+		String name = "";
+		Agent agent = Context.getCurrent().getMainAgent();
+		if (agent instanceof AnonymousAgent) {
+			return unauthorizedMessage();
+		} else if (agent instanceof UserAgent) {
+			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
+			name = userAgent.getLoginName();
+		} else {
+			name = agent.getIdentifier();
+		}
+		Set<String> headerKeys = httpHeaders.getRequestHeaders().keySet();
+        for(String header:headerKeys){
+            responseObject.put(header,httpHeaders.getRequestHeader(header).get(0));
+            }
+        return Response.status(200).entity(responseObject.toString()).build();
+	}
+	
 
 	/**
 	 * Create a new configuration.
@@ -3482,7 +3519,7 @@ public class ListenerConfigurator extends RESTService {
 			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
 			name = userAgent.getLoginName();
 		} else {
-			name = agent.getIdentifier();
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Cannot get timestamp for ServiceAgent").build();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3506,7 +3543,7 @@ public class ListenerConfigurator extends RESTService {
 				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
 			}
 
-			JSONObject times = configAccess.getTimeWithId(conn, configId);
+			JSONObject times = configAccess.getTimeWithId(conn, configId, name);
 			if (times.getString("timestamp") == null || times.getString("laststatement") == null) {
 				objResponse.put("message", "No Timestamp for this configuration found");
 				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString()).build();
@@ -3560,7 +3597,7 @@ public class ListenerConfigurator extends RESTService {
 			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
 			name = userAgent.getLoginName();
 		} else {
-			name = agent.getIdentifier();
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("ServiceAgent cannot set timestamps for users").build();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3597,7 +3634,7 @@ public class ListenerConfigurator extends RESTService {
 					return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(objResponse.toString()).build();
 				} else {
 					try {
-						configAccess.setTime(conn, configId, time1, time2);
+						configAccess.setTime(conn, configId, time1, time2, name);
 					} catch (Exception e) {
 						objResponse.put("message", "Cannot set timestamp. DB error");
 						return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity(objResponse.toString())
