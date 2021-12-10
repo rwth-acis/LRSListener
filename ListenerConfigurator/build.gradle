@@ -16,7 +16,7 @@ repositories {
 
 dependencies {
     // Use JUnit test framework.
-    //testImplementation "junit:junit:4.13.2"
+    testImplementation "junit:junit:4.13.2"
 
     // las2peer bundle which is not necessary in the runtime path
     // compileOnly will be moved into the lib dir afterwards
@@ -26,7 +26,6 @@ dependencies {
 	implementation group: 'org.apache.commons', name: 'commons-dbcp2', version: '2.8.0'
 	implementation group: 'org.json', name: 'json', version: '20210307'
 	implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.23'
-	
 }
 
 configurations {
@@ -82,14 +81,12 @@ compileTestJava {
 // Copies .xml files into build directory
 task copyMain(type: Copy) {
     from "src/main/java"
-    include "**/*.xml"
     into "$buildDir/classes/java/main"
 }
 
 // Copies .xml files into build directory
 task copyTest(type: Copy) {
     from "src/test/java"
-    include "**/*.xml"
     into "$buildDir/classes/java/test"
 }
 
@@ -100,6 +97,11 @@ task copyJar(type: Copy) {
     into "$projectDir/service"
 }
 
+task copyJarToListener(type: Copy) {
+    from jar // here it automatically reads jar file produced from jar task
+    into "$rootDir/LRSListener/service"
+}
+
 task copyToLib(type: Copy) {
     from configurations.compileClasspath
     into "$projectDir/lib"
@@ -107,6 +109,7 @@ task copyToLib(type: Copy) {
 
 build.dependsOn copyJar
 build.dependsOn copyToLib
+build.dependsOn copyJarToListener
 
 
 task startscripts {

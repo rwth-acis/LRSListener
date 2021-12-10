@@ -1,0 +1,1 @@
+java -cp "lib/*:service/*" i5.las2peer.tools.L2pNodeLauncher -p 9011 uploadStartupDirectory\(\'etc/startup\'\) startService\(\'i5.las2peer.services.gamification.listener.LRSListener@0.1\',\'gamificationlistenerpass\'\) startService\(\'i5.las2peer.services.gamification.configurator.ListenerConfigurator@0.1\',\'gamificationconfiguratorpass\'\) startWebConnector interactive

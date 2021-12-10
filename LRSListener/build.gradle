@@ -85,14 +85,12 @@ compileTestJava {
 // Copies .xml files into build directory
 task copyMain(type: Copy) {
     from "src/main/java"
-    include "**/*.xml"
     into "$buildDir/classes/java/main"
 }
 
 // Copies .xml files into build directory
 task copyTest(type: Copy) {
     from "src/test/java"
-    include "**/*.xml"
     into "$buildDir/classes/java/test"
 }
 
@@ -106,6 +104,11 @@ task copyJar(type: Copy) {
 task copyToLib(type: Copy) {
     from configurations.compileClasspath
     into "$projectDir/lib"
+}
+
+task importProperties(type: Copy){
+	from "$rootDir/ListenerConfigurator/etc/i5.las2peer.services.gamification.configurator.ListenerConfigurator.properties"
+	into "$projectDir/etc"
 }
 
 build.dependsOn copyJar

@@ -1,7 +1,8 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
-public class GameMapping {
+public class LevelMapping {
 	private String gameId;
+	private int levelNumber;
 	private String listenTo;
 	/**
 	 * @return the gameId
@@ -16,6 +17,18 @@ public class GameMapping {
 		this.gameId = gameId;
 	}
 	/**
+	 * @return the levelNumber
+	 */
+	public int getLevelNumber() {
+		return levelNumber;
+	}
+	/**
+	 * @param levelNumber the levelNumber to set
+	 */
+	public void setLevelNumber(int levelNumber) {
+		this.levelNumber = levelNumber;
+	}
+	/**
 	 * @return the listenTo
 	 */
 	public String getListenTo() {
@@ -27,5 +40,4 @@ public class GameMapping {
 	public void setListenTo(String listenTo) {
 		this.listenTo = listenTo;
 	}
-	
 }

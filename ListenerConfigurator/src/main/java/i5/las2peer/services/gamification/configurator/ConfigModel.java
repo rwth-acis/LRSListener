@@ -1,4 +1,4 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;

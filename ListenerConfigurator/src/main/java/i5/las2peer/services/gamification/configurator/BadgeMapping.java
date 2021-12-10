@@ -1,8 +1,8 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
-public class LevelMapping {
+public class BadgeMapping {
 	private String gameId;
-	private int levelNumber;
+	private String badgeId;
 	private String listenTo;
 	/**
 	 * @return the gameId
@@ -17,16 +17,16 @@ public class LevelMapping {
 		this.gameId = gameId;
 	}
 	/**
-	 * @return the levelNumber
+	 * @return the badgeId
 	 */
-	public int getLevelNumber() {
-		return levelNumber;
+	public String getBadgeId() {
+		return badgeId;
 	}
 	/**
-	 * @param levelNumber the levelNumber to set
+	 * @param badgeId the badgeId to set
 	 */
-	public void setLevelNumber(int levelNumber) {
-		this.levelNumber = levelNumber;
+	public void setBadgeId(String badgeId) {
+		this.badgeId = badgeId;
 	}
 	/**
 	 * @return the listenTo

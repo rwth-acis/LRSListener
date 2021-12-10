@@ -1,44 +1,44 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-
 /**
-* Action Model
+* Achievement Model
 * 
-* This is the class to store the Badge model
+* This is the class to store the Achievement model
 * 
 */
 
-@ApiModel( value = "ActionModel", description = "Action resource representation" )
-public class ActionModel{
-	
 
-	@ApiModelProperty( value = "Action ID", required = true ) 
-	private String actionId;
-	@ApiModelProperty( value = "Action name", required = true ) 
+@ApiModel( value = "AchievementModel", description = "Achievement resource representation" )
+public class AchievementModel{
+
+	@ApiModelProperty( value = "Achievement ID", required = true ) 
+	private String achievementId;
+	@ApiModelProperty( value = "Achievement name", required = true ) 
 	private String name;
-	@ApiModelProperty( value = "Action description") 
+	@ApiModelProperty( value = "Achievement description") 
 	private String description;
-	@ApiModelProperty( value = "Action point value") 
-	private int pointValue = 0;
+	@ApiModelProperty( value = "Achievement point value") 
+	private int pointValue;
+	@ApiModelProperty( value = "Achievement badge") 
+	private String badgeId;
 	@ApiModelProperty( value = "Use notification status", required = true ) 
 	private boolean useNotification;
 	@ApiModelProperty( value = "Notification Message") 
 	private String notificationMessage;
-	
 	/**
-	 * @return the actionId
+	 * @return the achievementId
 	 */
-	public String getActionId() {
-		return actionId;
+	public String getAchievementId() {
+		return achievementId;
 	}
 	/**
-	 * @param actionId the actionId to set
+	 * @param achievementId the achievementId to set
 	 */
-	public void setActionId(String actionId) {
-		this.actionId = actionId;
+	public void setAchievementId(String achievementId) {
+		this.achievementId = achievementId;
 	}
 	/**
 	 * @return the name
@@ -77,6 +77,18 @@ public class ActionModel{
 		this.pointValue = pointValue;
 	}
 	/**
+	 * @return the badgeId
+	 */
+	public String getBadgeId() {
+		return badgeId;
+	}
+	/**
+	 * @param badgeId the badgeId to set
+	 */
+	public void setBadgeId(String badgeId) {
+		this.badgeId = badgeId;
+	}
+	/**
 	 * @return the useNotification
 	 */
 	public boolean isUseNotification() {
@@ -100,4 +112,6 @@ public class ActionModel{
 	public void setNotificationMessage(String notificationMessage) {
 		this.notificationMessage = notificationMessage;
 	}
+
+	
 }

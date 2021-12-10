@@ -1,44 +1,39 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 /**
-* Achievement Model
+* Level Model
 * 
-* This is the class to store the Achievement model
+* This is the class to store the Level model
 * 
 */
 
+@ApiModel( value = "LevelModel", description = "Level resource representation" )
+public class LevelModel{
 
-@ApiModel( value = "AchievementModel", description = "Achievement resource representation" )
-public class AchievementModel{
-
-	@ApiModelProperty( value = "Achievement ID", required = true ) 
-	private String achievementId;
-	@ApiModelProperty( value = "Achievement name", required = true ) 
+	@ApiModelProperty( value = "Level number", required = true ) 
+	private int levelNumber;
+	@ApiModelProperty( value = "Level name", required = true ) 
 	private String name;
-	@ApiModelProperty( value = "Achievement description") 
-	private String description;
-	@ApiModelProperty( value = "Achievement point value") 
-	private int pointValue;
-	@ApiModelProperty( value = "Achievement badge") 
-	private String badgeId;
+	@ApiModelProperty( value = "Level point value threshold") 
+	private int pointValue = 0;
 	@ApiModelProperty( value = "Use notification status", required = true ) 
 	private boolean useNotification;
 	@ApiModelProperty( value = "Notification Message") 
 	private String notificationMessage;
 	/**
-	 * @return the achievementId
+	 * @return the levelNumber
 	 */
-	public String getAchievementId() {
-		return achievementId;
+	public int getLevelNumber() {
+		return levelNumber;
 	}
 	/**
-	 * @param achievementId the achievementId to set
+	 * @param levelNumber the levelNumber to set
 	 */
-	public void setAchievementId(String achievementId) {
-		this.achievementId = achievementId;
+	public void setLevelNumber(int levelNumber) {
+		this.levelNumber = levelNumber;
 	}
 	/**
 	 * @return the name
@@ -53,18 +48,6 @@ public class AchievementModel{
 		this.name = name;
 	}
 	/**
-	 * @return the description
-	 */
-	public String getDescription() {
-		return description;
-	}
-	/**
-	 * @param description the description to set
-	 */
-	public void setDescription(String description) {
-		this.description = description;
-	}
-	/**
 	 * @return the pointValue
 	 */
 	public int getPointValue() {
@@ -75,18 +58,6 @@ public class AchievementModel{
 	 */
 	public void setPointValue(int pointValue) {
 		this.pointValue = pointValue;
-	}
-	/**
-	 * @return the badgeId
-	 */
-	public String getBadgeId() {
-		return badgeId;
-	}
-	/**
-	 * @param badgeId the badgeId to set
-	 */
-	public void setBadgeId(String badgeId) {
-		this.badgeId = badgeId;
 	}
 	/**
 	 * @return the useNotification

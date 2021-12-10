@@ -86,9 +86,9 @@ public class LRSListener extends RESTService implements Runnable{
 			configId = properties.getProperty("configId");
 			lrsAuth = properties.getProperty("lrsAuth");
 			workers = Collections.synchronizedList(new ArrayList<LrsWorker>());
-//			thread = new Thread(this);
-//			thread.setDaemon(true);
-//			thread.start();
+			thread = new Thread(this);
+			thread.setDaemon(true);
+			thread.start();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -129,16 +129,15 @@ public class LRSListener extends RESTService implements Runnable{
 		return Response.status(HttpURLConnection.HTTP_UNAUTHORIZED).entity(objResponse.toString()).type(MediaType.APPLICATION_JSON).build();
 	}
 	
-	//TODO receive access-token and Authorization Header
 	/**
 	 * 
-	 * @param token user learning layers access token
+	 * @param content json string in json in format of {"token":"[valueHere]"}
 	 * @return http response
 	 */
 	@POST
 	@Path("/start")
 	public Response startListener(
-			@ApiParam(value = "Mapping detail in JSON", required = true) String token) {
+			@ApiParam(value = "Mapping detail in JSON", required = true) byte[] content) {
 		String name = "";
 		String email = "";
 		String l2pAuth = "";
@@ -149,21 +148,28 @@ public class LRSListener extends RESTService implements Runnable{
 		}
 		else if (agent instanceof UserAgent) {
 			UserAgent userAgent = (UserAgent) i5.las2peer.api.Context.getCurrent().getMainAgent();
-			//name = userAgent.getLoginName();
+			name = userAgent.getLoginName();
 			if (userAgent.hasEmail()) {
 				email = userAgent.getEmail();
 			}
-			userToken = token;
 		}
 		else {
 			name = agent.getIdentifier();
 		}
 		try {
+			if (content == null) {
+				i5.las2peer.api.Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10,
+						"Could not start listener. Missing required payload");
+				return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Could not start listener. Missing required payload").build();
+			}
+			JSONObject obj = new JSONObject(new String(content));
+			String token = obj.getString("token");
 			l2pAuth = getUserAuth(token);
+			userToken = token;
 			if (l2pAuth == null) {
 				i5.las2peer.api.Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10,
 						"Could not start listener for user "+name +". Error creating authorization header from token");
-				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity("Could parse received data for user  " + name).build();
+				return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity("Could not parse received data for user  " + name).build();
 			}
 			try {
 				if (!isHandlerExist(name)) {
@@ -191,7 +197,7 @@ public class LRSListener extends RESTService implements Runnable{
 			e.printStackTrace();
 			i5.las2peer.api.Context.get().monitorEvent(this, MonitoringEvent.SERVICE_CUSTOM_ERROR_10,
 					"Could not start listener for user "+name +". The follwoing error ocurred " + e.getMessage());
-			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity("Could parse received data for user  " + name).build();
+			return Response.status(HttpURLConnection.HTTP_INTERNAL_ERROR).entity("Could not parse received data for user  " + name).build();
 		}
 	}
 	

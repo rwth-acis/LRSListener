@@ -1,4 +1,4 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -7,29 +7,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
-
 import javax.ws.rs.core.MediaType;
-
-import i5.las2peer.logging.L2pLogger;
-import i5.las2peer.restMapper.annotations.ServicePath;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -42,6 +32,8 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
+import i5.las2peer.logging.L2pLogger;
+import i5.las2peer.restMapper.annotations.ServicePath;
 import i5.las2peer.restMapper.RESTService;
 import i5.las2peer.api.security.Agent;
 import i5.las2peer.api.security.AnonymousAgent;
@@ -68,7 +60,7 @@ import org.json.JSONObject;
  * should be removed.
  * 
  */
-@SuppressWarnings("unused")
+
 @Api(value = "/gamification/configurator", authorizations = { @Authorization(value = "configurator_auth") })
 @SwaggerDefinition(info = @Info(title = "ListenerConfigurator Service", version = "0.1", description = "Configurator for Listener Service", termsOfService = "http://your-terms-of-service-url.com", contact = @Contact(name = "Marc Belsch", url = "dbis.rwth-aachen.de", email = "marc.belsch.rwth-aachen.de"), license = @License(name = "your software license name", url = "http://your-software-license-url.com")))
 
@@ -84,13 +76,11 @@ public class ListenerConfigurator extends RESTService {
 	private String jdbcPass;
 	private DatabaseManager dbm;
 	private ConfigDAO configAccess;
-	private Map<String, URL> observers;
 
 	public ListenerConfigurator() {
 		setFieldValues();
 		dbm = new DatabaseManager(jdbcDriverClassName, jdbcLogin, jdbcPass, jdbcUrl, jdbcDatabase);
 		this.configAccess = new ConfigDAO();
-		this.observers = new HashMap<String, URL>();
 	}
 
 	/**
@@ -105,42 +95,6 @@ public class ListenerConfigurator extends RESTService {
 		return Response.status(HttpURLConnection.HTTP_UNAUTHORIZED).entity(objResponse.toString())
 				.type(MediaType.APPLICATION_JSON).build();
 	}
-	
-	/**
-	 * 
-	 * @param httpHeaders validate
-	 * @return return
-	 */
-	@POST
-	@Path("/test")
-	@Produces(MediaType.APPLICATION_JSON)
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpURLConnection.HTTP_CREATED, message = "{message:Configuration upload success}"),
-			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "{message:Cannot create configuration. Configuration already exist!}"),
-			@ApiResponse(code = HttpURLConnection.HTTP_INTERNAL_ERROR, message = "{message:Cannot create configuration. Configuration cannot be null!}"),
-
-			@ApiResponse(code = HttpURLConnection.HTTP_BAD_REQUEST, message = "{message:Cannot create configuration. Failed to upload configuration."),
-			@ApiResponse(code = HttpURLConnection.HTTP_UNAUTHORIZED, message = "{message:You are not authorized") })
-	@ApiOperation(value = "createNewConfig", notes = "Create configuration")
-	public Response testHeader(@javax.ws.rs.core.Context HttpHeaders httpHeaders){
-		JSONObject responseObject = new JSONObject();
-		String name = "";
-		Agent agent = Context.getCurrent().getMainAgent();
-		if (agent instanceof AnonymousAgent) {
-			return unauthorizedMessage();
-		} else if (agent instanceof UserAgent) {
-			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
-			name = userAgent.getLoginName();
-		} else {
-			name = agent.getIdentifier();
-		}
-		Set<String> headerKeys = httpHeaders.getRequestHeaders().keySet();
-        for(String header:headerKeys){
-            responseObject.put(header,httpHeaders.getRequestHeader(header).get(0));
-            }
-        return Response.status(200).entity(responseObject.toString()).build();
-	}
-	
 
 	/**
 	 * Create a new configuration.
@@ -3519,7 +3473,8 @@ public class ListenerConfigurator extends RESTService {
 			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
 			name = userAgent.getLoginName();
 		} else {
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Cannot get timestamp for ServiceAgent").build();
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("Cannot get timestamp for ServiceAgent")
+					.build();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3597,7 +3552,8 @@ public class ListenerConfigurator extends RESTService {
 			UserAgent userAgent = (UserAgent) Context.getCurrent().getMainAgent();
 			name = userAgent.getLoginName();
 		} else {
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity("ServiceAgent cannot set timestamps for users").build();
+			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST)
+					.entity("ServiceAgent cannot set timestamps for users").build();
 		}
 		Connection conn = null;
 		JSONObject objResponse = new JSONObject();
@@ -3715,7 +3671,9 @@ public class ListenerConfigurator extends RESTService {
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
-				objResponse.put("message", "Could not notify observers. Database error when retrieving observer information. " + e.getMessage());
+				objResponse.put("message",
+						"Could not notify observers. Database error when retrieving observer information. "
+								+ e.getMessage());
 				Context.getCurrent().monitorEvent(this, MonitoringEvent.SERVICE_ERROR,
 						(String) objResponse.get("message"));
 				return;

@@ -1,8 +1,8 @@
-package i5.las2peer.services.gamification.listener;
+	package i5.las2peer.services.gamification.configurator;
 
-public class StreakMapping {
+public class QuestMapping {
 	private String gameId;
-	private String streakId;
+	private String questId;
 	private String listenTo;
 	/**
 	 * @return the gameId
@@ -17,16 +17,16 @@ public class StreakMapping {
 		this.gameId = gameId;
 	}
 	/**
-	 * @return the streakId
+	 * @return the questId
 	 */
-	public String getStreakId() {
-		return streakId;
+	public String getQuestId() {
+		return questId;
 	}
 	/**
-	 * @param streakId the streakId to set
+	 * @param questId the questId to set
 	 */
-	public void setStreakId(String streakId) {
-		this.streakId = streakId;
+	public void setQuestId(String questId) {
+		this.questId = questId;
 	}
 	/**
 	 * @return the listenTo

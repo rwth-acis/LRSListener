@@ -1,4 +1,4 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
 import java.io.IOException;
 import java.net.URL;
@@ -229,7 +229,7 @@ public class ConfigDAO {
 			quest.setName(rs.getString("name"));
 			quest.setDescription(rs.getString("description"));
 			quest.setStatus(
-					i5.las2peer.services.gamification.listener.QuestModel.QuestStatus.valueOf(rs.getString("status")));
+					i5.las2peer.services.gamification.configurator.QuestModel.QuestStatus.valueOf(rs.getString("status")));
 			quest.setAchievementId(rs.getString("achievement_id"));
 			quest.setQuestFlag(rs.getBoolean("quest_flag"));
 			quest.setQuestIdCompleted(rs.getString("quest_id_completed"));

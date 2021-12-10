@@ -1,4 +1,4 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
 import java.io.IOException;
 import java.util.ArrayList;

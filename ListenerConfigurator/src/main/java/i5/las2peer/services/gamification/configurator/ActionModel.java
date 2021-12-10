@@ -1,33 +1,44 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-public class StreakModel {
-	@ApiModelProperty( value = "Streak ID", required = true ) 
-	private String streakId;
-	@ApiModelProperty( value = "Streak name", required = true ) 
+
+/**
+* Action Model
+* 
+* This is the class to store the Badge model
+* 
+*/
+
+@ApiModel( value = "ActionModel", description = "Action resource representation" )
+public class ActionModel{
+	
+
+	@ApiModelProperty( value = "Action ID", required = true ) 
+	private String actionId;
+	@ApiModelProperty( value = "Action name", required = true ) 
 	private String name;
-	@ApiModelProperty( value = "Streak description") 
+	@ApiModelProperty( value = "Action description") 
 	private String description;
-	@ApiModelProperty( value = "Achievement ID", required = true ) 
-	private String achievementId;
+	@ApiModelProperty( value = "Action point value") 
+	private int pointValue = 0;
 	@ApiModelProperty( value = "Use notification status", required = true ) 
 	private boolean useNotification;
 	@ApiModelProperty( value = "Notification Message") 
 	private String notificationMessage;
-	@ApiModelProperty( value = "Point value") 
-	private int pointValue = 0;
+	
 	/**
-	 * @return the streakId
+	 * @return the actionId
 	 */
-	public String getStreakId() {
-		return streakId;
+	public String getActionId() {
+		return actionId;
 	}
 	/**
-	 * @param streakId the streakId to set
+	 * @param actionId the actionId to set
 	 */
-	public void setStreakId(String streakId) {
-		this.streakId = streakId;
+	public void setActionId(String actionId) {
+		this.actionId = actionId;
 	}
 	/**
 	 * @return the name
@@ -54,16 +65,16 @@ public class StreakModel {
 		this.description = description;
 	}
 	/**
-	 * @return the achievementId
+	 * @return the pointValue
 	 */
-	public String getAchievementId() {
-		return achievementId;
+	public int getPointValue() {
+		return pointValue;
 	}
 	/**
-	 * @param achievementId the achievementId to set
+	 * @param pointValue the pointValue to set
 	 */
-	public void setAchievementId(String achievementId) {
-		this.achievementId = achievementId;
+	public void setPointValue(int pointValue) {
+		this.pointValue = pointValue;
 	}
 	/**
 	 * @return the useNotification
@@ -88,17 +99,5 @@ public class StreakModel {
 	 */
 	public void setNotificationMessage(String notificationMessage) {
 		this.notificationMessage = notificationMessage;
-	}
-	/**
-	 * @return the pointValue
-	 */
-	public int getPointValue() {
-		return pointValue;
-	}
-	/**
-	 * @param pointValue the pointValue to set
-	 */
-	public void setPointValue(int pointValue) {
-		this.pointValue = pointValue;
 	}
 }

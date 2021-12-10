@@ -1,8 +1,8 @@
-	package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
-public class QuestMapping {
+public class AchievementMapping {
 	private String gameId;
-	private String questId;
+	private String achievementId;
 	private String listenTo;
 	/**
 	 * @return the gameId
@@ -17,16 +17,16 @@ public class QuestMapping {
 		this.gameId = gameId;
 	}
 	/**
-	 * @return the questId
+	 * @return the achievementId
 	 */
-	public String getQuestId() {
-		return questId;
+	public String getAchievementId() {
+		return achievementId;
 	}
 	/**
-	 * @param questId the questId to set
+	 * @param achievementId the achievementId to set
 	 */
-	public void setQuestId(String questId) {
-		this.questId = questId;
+	public void setAchievementId(String achievementId) {
+		this.achievementId = achievementId;
 	}
 	/**
 	 * @return the listenTo

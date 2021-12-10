@@ -1,8 +1,8 @@
-package i5.las2peer.services.gamification.listener;
+package i5.las2peer.services.gamification.configurator;
 
-public class AchievementMapping {
+public class StreakMapping {
 	private String gameId;
-	private String achievementId;
+	private String streakId;
 	private String listenTo;
 	/**
 	 * @return the gameId
@@ -17,16 +17,16 @@ public class AchievementMapping {
 		this.gameId = gameId;
 	}
 	/**
-	 * @return the achievementId
+	 * @return the streakId
 	 */
-	public String getAchievementId() {
-		return achievementId;
+	public String getStreakId() {
+		return streakId;
 	}
 	/**
-	 * @param achievementId the achievementId to set
+	 * @param streakId the streakId to set
 	 */
-	public void setAchievementId(String achievementId) {
-		this.achievementId = achievementId;
+	public void setStreakId(String streakId) {
+		this.streakId = streakId;
 	}
 	/**
 	 * @return the listenTo
