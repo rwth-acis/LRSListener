@@ -137,7 +137,7 @@ public class LRSListener extends RESTService implements Runnable{
 	@POST
 	@Path("/start")
 	public Response startListener(
-			@ApiParam(value = "Mapping detail in JSON", required = true) byte[] content) {
+			@ApiParam(value = "oidc toekn", required = true) byte[] content) {
 		String name = "";
 		String email = "";
 		String l2pAuth = "";
