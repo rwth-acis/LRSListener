@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  labels: 
+    app: listener
+  name: listener-deployment
+spec: 
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: listener
+  template: 
+    metadata: 
+      labels: 
+        app: listener
+    spec: 
+      containers: 
+        - 
+          image: registry.tech4comp.dbis.rwth-aachen.de/rwthacis/listener
+          name: listener
+          ports: 
+            - 
+              containerPort: 8080
